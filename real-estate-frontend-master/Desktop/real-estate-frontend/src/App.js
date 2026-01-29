@@ -6,6 +6,7 @@ import VerifyOtp from "./components/VerifyOtp";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SellProperty from "./pages/SellProperty";
 import MyProperties from "./components/MyProperties";
+import PropertyDetails from "./components/PropertyDetails";
 
 function App() {
   return (
@@ -14,31 +15,39 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
-        
+
         {/* Protected Routes */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <ProtectedRoute>
               <Home />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/sell-property" 
+        <Route
+          path="/sell-property"
           element={
             <ProtectedRoute>
               <SellProperty />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/my-properties" 
+        <Route
+          path="/my-properties"
           element={
             <ProtectedRoute>
               <MyProperties />
             </ProtectedRoute>
-          } 
+          }
+        />
+        <Route
+          path="/property/:id"
+          element={
+            <ProtectedRoute>
+              <PropertyDetails />
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </BrowserRouter>

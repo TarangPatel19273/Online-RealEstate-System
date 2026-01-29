@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { deleteProperty, updateProperty } from "../services/propertyService";
 import Navbar from "./Navbar";
 
 const MyProperties = () => {
@@ -7,6 +8,9 @@ const MyProperties = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({});
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const fetchMyProperties = async () => {
@@ -65,20 +69,65 @@ const MyProperties = () => {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:8080/api/properties/${propertyId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      // Remove from UI
+      await deleteProperty(propertyId);
       setProperties(prev => prev.filter(p => p.id !== propertyId));
       alert("Property deleted successfully");
     } catch (err) {
       console.error("Error deleting property:", err);
-      alert("Failed to delete property");
+      alert(err.response?.data || "Failed to delete property");
     }
+  };
+
+  const handleEditClick = (property) => {
+    console.log("Edit clicked for property:", property);
+    setEditingId(property.id);
+    setEditData({
+      title: property.title,
+      price: property.price,
+      location: property.location,
+      description: property.description
+    });
+  };
+
+  const handleSaveEdit = async (propertyId) => {
+    console.log("Saving edit for propertyId:", propertyId, "Data:", editData);
+    try {
+      setUpdating(true);
+      const response = await updateProperty(propertyId, editData);
+      console.log("Update success:", response);
+      
+      // Update the property in the list with the returned data
+      setProperties(prev => prev.map(p => {
+        if (p.id === propertyId) {
+          return {
+            ...p,
+            title: response.data.title || p.title,
+            price: response.data.price || p.price,
+            location: response.data.location || p.location,
+            description: response.data.description || p.description,
+            imageUrls: response.data.imageUrls || p.imageUrls
+          };
+        }
+        return p;
+      }));
+      
+      setEditingId(null);
+      setEditData({});
+      alert("Property updated successfully");
+    } catch (err) {
+      console.error("Error updating property:", err);
+      const errorMsg = typeof err.response?.data === 'string' 
+        ? err.response.data 
+        : err.response?.data?.message || "Failed to update property";
+      alert(errorMsg);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditData({});
   };
 
   if (loading) {
@@ -277,23 +326,155 @@ const MyProperties = () => {
                 <p><b>Location:</b> {property.location}</p>
                 <p style={{ color: "#666" }}>{property.description}</p>
 
-                {/* Delete Button */}
-                <button
-                  onClick={() => handleDelete(property.id)}
-                  style={{
-                    width: "100%",
-                    marginTop: "10px",
-                    padding: "8px",
-                    backgroundColor: "#dc3545",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                    fontWeight: "600"
-                  }}
-                >
-                  Delete Property
-                </button>
+                {/* Edit / Delete Buttons */}
+                <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                  {editingId === property.id ? (
+                    <>
+                      <button
+                        onClick={() => handleSaveEdit(property.id)}
+                        disabled={updating}
+                        style={{
+                          flex: 1,
+                          padding: "8px",
+                          backgroundColor: "#28a745",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          fontWeight: "600"
+                        }}
+                      >
+                        {updating ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        style={{
+                          flex: 1,
+                          padding: "8px",
+                          backgroundColor: "#6c757d",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          fontWeight: "600"
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleEditClick(property)}
+                        style={{
+                          flex: 1,
+                          padding: "8px",
+                          backgroundColor: "#007bff",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          fontWeight: "600"
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(property.id)}
+                        style={{
+                          flex: 1,
+                          padding: "8px",
+                          backgroundColor: "#dc3545",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          fontWeight: "600"
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Edit Form */}
+                {editingId === property.id && (
+                  <div style={{
+                    marginTop: "15px",
+                    padding: "15px",
+                    backgroundColor: "#f8f9fa",
+                    borderRadius: "8px",
+                    border: "1px solid #dee2e6"
+                  }}>
+                    <h5>Edit Property</h5>
+                    
+                    <div style={{ marginBottom: "10px" }}>
+                      <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Title</label>
+                      <input
+                        type="text"
+                        value={editData.title || ""}
+                        onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          borderRadius: "4px",
+                          border: "1px solid #ccc",
+                          boxSizing: "border-box"
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "10px" }}>
+                      <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Price</label>
+                      <input
+                        type="text"
+                        value={editData.price || ""}
+                        onChange={(e) => setEditData({ ...editData, price: e.target.value })}
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          borderRadius: "4px",
+                          border: "1px solid #ccc",
+                          boxSizing: "border-box"
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "10px" }}>
+                      <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Location</label>
+                      <input
+                        type="text"
+                        value={editData.location || ""}
+                        onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          borderRadius: "4px",
+                          border: "1px solid #ccc",
+                          boxSizing: "border-box"
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Description</label>
+                      <textarea
+                        value={editData.description || ""}
+                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          borderRadius: "4px",
+                          border: "1px solid #ccc",
+                          boxSizing: "border-box",
+                          minHeight: "80px",
+                          fontFamily: "inherit"
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

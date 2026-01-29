@@ -1,11 +1,336 @@
 /* Container */
 .sell-property-container {
   min-height: calc(100vh - 80px);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--background-light, #f4f5f7);
   padding: 40px 20px;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+}
+
+/* Form Wrapper */
+.sell-property-wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 40px;
+  max-width: 700px;
+  width: 100%;
+  animation: slideUp 0.4s ease-out;
+  border: 1px solid #eee;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Title */
+.sell-property-title {
+  text-align: left;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+  display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+.sell-property-subtitle {
+  text-align: left;
+  font-size: 15px;
+  color: #64748b;
+  margin-bottom: 30px;
+}
+
+/* Form */
+.sell-property-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group label .icon {
+  font-size: 16px;
+}
+
+/* Row for Price & Location */
+.form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+/* Input Fields */
+.form-input,
+.form-textarea,
+select.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* File Input */
+.file-input-wrapper {
+  position: relative;
+  overflow: hidden;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.file-input-wrapper:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.file-input-wrapper input[type="file"] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.file-input-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+  /* Ensure updated style works */
+}
+
+.file-input-label .upload-icon {
+  font-size: 32px;
+  color: #64748b;
+  background: #e2e8f0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-input-wrapper:hover .upload-icon {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.file-input-label .upload-text {
+  font-size: 16px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.file-input-label .upload-hint {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.files-selected {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #10b981;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Submit Button */
+.submit-button {
+  width: 100%;
+  padding: 16px;
+  background: #0078db;
+  /* Primary Blue from Index */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(0, 120, 219, 0.2);
+}
+
+.submit-button:hover:not(:disabled) {
+  background: #0060b0;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 120, 219, 0.3);
+}
+
+.submit-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+/* Message */
+.message {
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.message.error {
+  background-color: #fee2e2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+}
+
+/* SUCCESS STATE STYLES */
+.success-card {
+  text-align: center;
+  padding: 20px;
+}
+
+.success-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  display: inline-block;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.success-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.success-desc {
+  color: #64748b;
+  margin-bottom: 30px;
+  font-size: 16px;
+}
+
+.success-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.btn-dashboard {
+  background: #0078db;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-dashboard:hover {
+  background: #0060b0;
+}
+
+.btn-upload-more {
+  background: white;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-upload-more:hover {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    gap: 20px;
+  }
 }
 
 /* Form Wrapper */
@@ -24,6 +349,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -202,6 +528,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);

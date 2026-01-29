@@ -23,21 +23,27 @@ function SellProperty() {
     }
 
     try {
-      axios.post(
-  "http://localhost:8080/api/properties/upload",
-  formData,
-  {
-    headers: {
-      "Content-Type": "multipart/form-data"
-    }
-  }
-);
-
+      const token = localStorage.getItem("token");
+      await axios.post(
+        "http://localhost:8080/api/properties/upload",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      );
 
       setMessage("Property uploaded successfully ✅");
+      setTitle("");
+      setPrice("");
+      setLocation("");
+      setDescription("");
+      setImages([]);
 
     } catch (err) {
-      setMessage("Upload failed ❌");
+      setMessage(err.response?.data || "Upload failed ❌");
     }
   };
 

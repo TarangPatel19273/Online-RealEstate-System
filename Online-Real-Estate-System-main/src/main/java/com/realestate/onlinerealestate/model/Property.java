@@ -20,6 +20,9 @@ public class Property {
     @Column(length = 2000)
     private String description;
 
+    private String type; // Sell, Rent
+    private String category; // Residential, Commercial
+
     private LocalDateTime createdAt;
 
     // ✅ LINK TO USER WHO UPLOADED THIS PROPERTY
@@ -29,10 +32,7 @@ public class Property {
 
     // ✅ STORE IMAGE NAMES
     @ElementCollection
-    @CollectionTable(
-        name = "property_images",
-        joinColumns = @JoinColumn(name = "property_id")
-    )
+    @CollectionTable(name = "property_images", joinColumns = @JoinColumn(name = "property_id"))
     @Column(name = "image_name")
     private List<String> imageNames;
 
@@ -76,6 +76,22 @@ public class Property {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public LocalDateTime getCreatedAt() {

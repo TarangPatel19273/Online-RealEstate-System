@@ -55,8 +55,7 @@ public class AuthController {
         String otp = otpService.generateSignupOtp(
                 request.getEmail(),
                 request.getUsername(),
-                encodedPassword
-        );
+                encodedPassword);
 
         emailService.sendOtp(request.getEmail(), otp);
 
@@ -109,7 +108,8 @@ public class AuthController {
         // ✅ generate JWT
         String token = jwtUtil.generateToken(user.getEmail());
 
-        return ResponseEntity.ok(token);
+        // Return JSON with token and user info
+        return ResponseEntity.ok(new com.realestate.onlinerealestate.dto.AuthResponse(token, user));
     }
 
     // =========================
@@ -121,8 +121,7 @@ public class AuthController {
         User user = userRepository
                 .findByEmailOrUsername(
                         request.getUsernameOrEmail(),
-                        request.getUsernameOrEmail()
-                )
+                        request.getUsernameOrEmail())
                 .orElse(null);
 
         if (user == null) {
@@ -134,6 +133,7 @@ public class AuthController {
         }
 
         String token = jwtUtil.generateToken(user.getEmail());
-        return ResponseEntity.ok(token);
+        // Return JSON with token and user info
+        return ResponseEntity.ok(new com.realestate.onlinerealestate.dto.AuthResponse(token, user));
     }
 }

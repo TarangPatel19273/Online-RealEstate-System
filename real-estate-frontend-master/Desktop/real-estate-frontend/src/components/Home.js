@@ -9,17 +9,37 @@ const Home = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const locationHook = useLocation();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [activeTab, setActiveTab] = useState("Buy");
 
   useEffect(() => {
     const params = new URLSearchParams(locationHook.search);
-    const q = params.get("location");
-    const url = q && q.trim().length > 0
-      ? `http://localhost:8080/api/properties/search?location=${encodeURIComponent(q.trim())}`
-      : "http://localhost:8080/api/properties";
+    const filters = {
+      location: params.get("location") || "",
+      type: "",
+      category: ""
+    }
+
+    // MAP TABS TO FILTERS
+    if (activeTab === "Buy") {
+      filters.type = "Sell";
+    } else if (activeTab === "Rent") {
+      filters.type = "Rent";
+    } else if (activeTab === "Commercial") {
+      filters.category = "Commercial";
+      // filters.type = "Sell"; // Optional: default to sell for commercial? or show all. Let's show all commercial.
+    }
+
+    let url = `http://localhost:8080/api/properties/search?`;
+    if (filters.location) url += `location=${encodeURIComponent(filters.location)}&`;
+    if (filters.type) url += `type=${filters.type}&`;
+    if (filters.category) url += `category=${filters.category}`;
+
+    console.log("Fetching with URL:", url);
 
     axios.get(url)
       .then(res => {
-        console.log("Properties data received:", res.data);
         const data = res.data || [];
         setProperties(data);
 
@@ -33,161 +53,145 @@ const Home = () => {
         console.error("Error fetching properties:", err);
         setProperties([]);
       });
-  }, [locationHook.search]);
+  }, [locationHook.search, activeTab]);
 
-  const handleNextImage = (propertyId, totalImages) => {
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?location=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate("/");
+    }
+  }
+
+  const handleNextImage = (e, propertyId, totalImages) => {
+    e.stopPropagation();
     setCurrentImageIndex(prev => ({
       ...prev,
       [propertyId]: (prev[propertyId] + 1) % totalImages
     }));
   };
 
-  const handlePrevImage = (propertyId, totalImages) => {
+  const handlePrevImage = (e, propertyId, totalImages) => {
+    e.stopPropagation();
     setCurrentImageIndex(prev => ({
       ...prev,
       [propertyId]: (prev[propertyId] - 1 + totalImages) % totalImages
     }));
   };
 
-  const params = new URLSearchParams(locationHook.search);
-  const searchQuery = params.get("location");
-
-  const handleClearSearch = () => {
-    navigate("/");
-  };
-
   return (
-    <>
+    <div className="home-page">
       <Navbar />
-      <div className="home-container">
-        <div className="home-header">
-          <h1 className="home-title">🏡 Discover Your Dream Property</h1>
-          <p className="home-subtitle">
-            Browse through our collection of premium properties
-          </p>
-          
-          {searchQuery && (
-            <div className="search-info">
-              <span className="search-info-icon">📍</span>
-              <span className="search-info-text">
-                Showing results for: <strong>"{searchQuery}"</strong>
-              </span>
-              <button className="clear-search-btn" onClick={handleClearSearch}>
-                View All
-              </button>
+
+      {/* HERO SECTION */}
+      <div className="hero-section">
+        <div className="hero-overlay"></div>
+        <div className="hero-content">
+          <h1 className="hero-title">Real Estate in India</h1>
+          <h2 className="hero-subtitle">Check out the latest properties for Buy, Rent, or Sell</h2>
+
+          <div className="hero-search-container">
+            <div className="search-tabs">
+              <span className={`search-tab ${activeTab === "Buy" ? "active" : ""}`} onClick={() => setActiveTab("Buy")}>Buy</span>
+              <span className={`search-tab ${activeTab === "Rent" ? "active" : ""}`} onClick={() => setActiveTab("Rent")}>Rent</span>
+              <span className={`search-tab ${activeTab === "Commercial" ? "active" : ""}`} onClick={() => setActiveTab("Commercial")}>Commercial</span>
             </div>
-          )}
+            <form className="hero-search-bar" onSubmit={handleSearch}>
+              <div className="search-input-wrapper">
+                <span className="search-icon">📍</span>
+                <input
+                  type="text"
+                  placeholder="Search by city, locality, or project..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="hero-search-btn">Search</button>
+            </form>
+          </div>
         </div>
+      </div>
+
+      {/* PROPERTY LIST SECTION */}
+      <div className="content-container">
+        <h2 className="section-title">Latest Properties</h2>
 
         <div className="properties-grid">
-        {properties.map(property => {
-          const currentIndex = currentImageIndex[property.id] || 0;
-          const hasImages = property.imageUrls && property.imageUrls.length > 0;
-          const totalImages = hasImages ? property.imageUrls.length : 0;
+          {properties.map(property => {
+            const currentIndex = currentImageIndex[property.id] || 0;
+            const hasImages = property.imageUrls && property.imageUrls.length > 0;
+            const totalImages = hasImages ? property.imageUrls.length : 0;
 
-          return (
-            <div key={property.id} className="property-card">
-              {/* IMAGE CAROUSEL */}
-              {hasImages ? (
-                <div className="image-carousel">
-                  <img
-                    src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
-                    alt={property.title}
-                    className="property-image"
-                    onLoad={() => console.log(`Image loaded: ${property.imageUrls[currentIndex]}`)}
-                    onError={(e) => {
-                      console.error(`Failed to load image: ${property.imageUrls[currentIndex]}`);
-                      e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
-                    }}
-                  />
-
-                  {/* Navigation Arrows - Only show if multiple images */}
-                  {totalImages > 1 && (
+            return (
+              <div key={property.id} className="property-card" onClick={() => navigate(`/property/${property.id}`)}>
+                {/* IMAGE CAROUSEL */}
+                <div className="card-image-wrapper">
+                  {hasImages ? (
                     <>
-                      <button
-                        className="carousel-arrow arrow-left"
-                        onClick={() => handlePrevImage(property.id, totalImages)}
-                      >
-                        ‹
-                      </button>
-                      <button
-                        className="carousel-arrow arrow-right"
-                        onClick={() => handleNextImage(property.id, totalImages)}
-                      >
-                        ›
-                      </button>
-
-                      {/* Image Counter */}
-                      <div className="image-counter">
-                        {currentIndex + 1} / {totalImages}
+                      <img
+                        src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
+                        alt={property.title}
+                        className="card-image"
+                        onError={(e) => {
+                          e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
+                        }}
+                      />
+                      {totalImages > 1 && (
+                        <>
+                          <button className="card-nav-btn prev" onClick={(e) => handlePrevImage(e, property.id, totalImages)}>‹</button>
+                          <button className="card-nav-btn next" onClick={(e) => handleNextImage(e, property.id, totalImages)}>›</button>
+                        </>
+                      )}
+                      <div className="image-counter-badge">
+                        📷 {totalImages}
                       </div>
-
-                      {/* Dot Indicators */}
-                      <div className="dot-indicators">
-                        {property.imageUrls.map((_, index) => (
-                          <div
-                            key={index}
-                            className={`dot ${index === currentIndex ? 'active' : ''}`}
-                            onClick={() => setCurrentImageIndex(prev => ({
-                              ...prev,
-                              [property.id]: index
-                            }))}
-                          />
-                        ))}
-                      </div>
-                  </>
-                )}
-              </div>
-            ) : (
-                  <div className="no-image-placeholder">
-                    <div className="no-image-icon">🏠</div>
-                    <div>No Image Available</div>
-                  </div>
-                )}
-              <div className="property-details">
-                <h3 className="property-title">{property.title}</h3>
-                
-                <div className="property-info">
-                  <div className="info-row">
-                    <span className="info-icon">💰</span>
-                    <span className="info-label">Price:</span>
-                    <span className="info-value price-tag">₹{property.price}</span>
-                  </div>
-                  
-                  <div className="info-row">
-                    <span className="info-icon">📍</span>
-                    <span className="info-label">Location:</span>
-                    <span className="info-value location-tag">{property.location}</span>
-                  </div>
+                    </>
+                  ) : (
+                    <div className="no-image-placeholder">
+                      <span>🏠 No Photos</span>
+                    </div>
+                  )}
                 </div>
 
-                <p className="property-description">{property.description}</p>
+                {/* DETAILS */}
+                <div className="card-details">
+                  <div className="card-header">
+                    <h3 className="card-price">₹ {property.price}</h3>
+                    <span className="card-title">{property.title}</span>
+                  </div>
+
+                  <div className="card-location">
+                    📍 {property.location}
+                  </div>
+
+                  <p className="card-description">
+                    {property.description?.length > 80
+                      ? property.description.substring(0, 80) + "..."
+                      : property.description}
+                  </p>
+
+                  <div className="card-footer">
+                    <span className="card-tag">Ready to Move</span>
+                    <div className="card-actions">
+                      <button className="btn-contact-seller">Contact Seller</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-        );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
         {properties.length === 0 && (
           <div className="empty-state">
-            <div className="empty-icon">🏘️</div>
-            <h2 className="empty-title">
-              {searchQuery ? `No properties found in "${searchQuery}"` : "No Properties Yet"}
-            </h2>
-            <p className="empty-message">
-              {searchQuery 
-                ? "Try searching for a different location or browse all properties."
-                : "Start by adding your first property to showcase it to potential buyers!"}
-            </p>
-            <button className="add-property-btn" onClick={() => navigate("/sell-property")}>
-              <span>➕</span>
-              <span>Add Your Property</span>
-            </button>
+            <div className="empty-emoji">🏙️</div>
+            <h3>No Properties Found</h3>
+            <p>Try adjusting your search or check back later.</p>
           </div>
         )}
       </div>
-
-    </>
+    </div>
   );
 };
 
