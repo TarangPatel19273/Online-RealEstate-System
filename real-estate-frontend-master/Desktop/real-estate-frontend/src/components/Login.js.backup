@@ -1,0 +1,99 @@
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+// import "./Login.css";
+
+function Login() {
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
+  }, [navigate]);
+
+  const handleLogin = async () => {
+    if (!usernameOrEmail || !password) {
+      setMessage("All fields are required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setMessage("");
+
+      const res = await axios.post(
+        "http://localhost:8080/api/auth/login",
+        {
+          usernameOrEmail,
+          password,
+        }
+      );
+
+      // ✅ JWT received
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+    navigate("/");
+
+
+    } catch (err) {
+      // ✅ ALWAYS convert error to string
+      const errorMessage =
+        typeof err.response?.data === "string"
+          ? err.response.data
+          : err.response?.data?.error || "Login failed";
+
+     setMessage(
+  typeof err.response?.data === "string"
+    ? err.response.data
+    : "Login failed"
+);
+
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ width: "320px", margin: "50px auto" }}>
+      <h2>Login</h2>
+
+      <input
+        type="text"
+        placeholder="Email or Username"
+        value={usernameOrEmail}
+        onChange={(e) => setUsernameOrEmail(e.target.value)}
+        style={{ width: "100%", marginBottom: "10px" }}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{ width: "100%", marginBottom: "10px" }}
+      />
+
+      <button
+        onClick={handleLogin}
+        disabled={loading}
+        style={{ width: "100%" }}
+      >
+        {loading ? "Logging in..." : "Login"}
+      </button>
+
+      {/* ✅ SAFE RENDER */}
+      {message && <p style={{ marginTop: "10px", color: "red" }}>{message}</p>}
+    </div>
+  );
+}
+
+export default Login;
