@@ -66,14 +66,13 @@ function VerifyOtp() {
       setLoading(true);
       setError("");
 
-      const res = await axios.post(
+      await axios.post(
         "http://localhost:8080/api/auth/verify-otp",
         { email, otp: otpCode }
       );
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      navigate("/home");
+      // Navigate to login page after successful verification
+      navigate("/login", { state: { message: "Account verified successfully! Please login." } });
     } catch (err) {
       setError(err.response?.data || "Invalid or expired OTP");
     } finally {

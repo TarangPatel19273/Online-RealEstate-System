@@ -11,6 +11,7 @@ public class PropertyResponse {
 	private String description;
 	private String type;
 	private String category;
+	private String contactNumber;
 	private List<String> imageUrls;
 
 	public Long getId() {
@@ -69,6 +70,14 @@ public class PropertyResponse {
 		this.category = category;
 	}
 
+	public String getContactNumber() {
+		return contactNumber;
+	}
+
+	public void setContactNumber(String contactNumber) {
+		this.contactNumber = contactNumber;
+	}
+
 	public List<String> getImageUrls() {
 		return imageUrls;
 	}
@@ -78,6 +87,8 @@ public class PropertyResponse {
 	}
 
 	private Long userId;
+	private String sellerEmail;
+	private String sellerUsername;
 
 	public Long getUserId() {
 		return userId;
@@ -85,6 +96,22 @@ public class PropertyResponse {
 
 	public void setUserId(Long userId) {
 		this.userId = userId;
+	}
+
+	public String getSellerEmail() {
+		return sellerEmail;
+	}
+
+	public void setSellerEmail(String sellerEmail) {
+		this.sellerEmail = sellerEmail;
+	}
+
+	public String getSellerUsername() {
+		return sellerUsername;
+	}
+
+	public void setSellerUsername(String sellerUsername) {
+		this.sellerUsername = sellerUsername;
 	}
 
 	@Override

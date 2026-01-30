@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -64,6 +63,7 @@ public class PropertyController {
             @RequestParam String description,
             @RequestParam(defaultValue = "Sell") String type,
             @RequestParam(defaultValue = "Residential") String category,
+            @RequestParam(required = false) String contactNumber,
             @RequestParam("images") List<MultipartFile> images,
             @RequestHeader("Authorization") String authHeader) {
 
@@ -87,9 +87,12 @@ public class PropertyController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 📁 upload directory - Use absolute path
-            String uploadDir = System.getProperty("user.dir") + "/uploads/";
-            Files.createDirectories(Paths.get(uploadDir));
+            // 📁 upload directory - Use parent directory of the project to ensure
+            // persistence
+            Path projectDir = Paths.get(System.getProperty("user.dir"));
+            Path uploadPath = projectDir.getParent().resolve("uploads");
+            String uploadDir = uploadPath.toString() + "/";
+            Files.createDirectories(uploadPath);
 
             Property property = new Property();
             property.setTitle(title);
@@ -98,6 +101,7 @@ public class PropertyController {
             property.setDescription(description);
             property.setType(type);
             property.setCategory(category);
+            property.setContactNumber(contactNumber);
             property.setCreatedAt(LocalDateTime.now());
             property.setUser(user);
 
@@ -122,7 +126,7 @@ public class PropertyController {
 
             return ResponseEntity.ok("Property uploaded successfully");
 
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             logger.error("Error uploading property", e);
             return ResponseEntity.internalServerError().body("Upload failed");
         }
@@ -145,6 +149,7 @@ public class PropertyController {
             dto.setDescription(property.getDescription());
             dto.setType(property.getType());
             dto.setCategory(property.getCategory());
+            dto.setContactNumber(property.getContactNumber());
 
             // Return whatever image names are stored; let client handle missing ones
             // gracefully
@@ -153,6 +158,8 @@ public class PropertyController {
 
             if (property.getUser() != null) {
                 dto.setUserId(property.getUser().getId());
+                dto.setSellerEmail(property.getUser().getEmail());
+                dto.setSellerUsername(property.getUser().getUsername());
             }
 
             return dto;
@@ -178,10 +185,13 @@ public class PropertyController {
             dto.setDescription(property.getDescription());
             dto.setType(property.getType());
             dto.setCategory(property.getCategory());
+            dto.setContactNumber(property.getContactNumber());
             dto.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
 
             if (property.getUser() != null) {
                 dto.setUserId(property.getUser().getId());
+                dto.setSellerEmail(property.getUser().getEmail());
+                dto.setSellerUsername(property.getUser().getUsername());
             }
 
             return ResponseEntity.ok(dto);
@@ -234,12 +244,15 @@ public class PropertyController {
             dto.setDescription(property.getDescription());
             dto.setType(property.getType());
             dto.setCategory(property.getCategory());
+            dto.setContactNumber(property.getContactNumber());
 
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
 
             if (property.getUser() != null) {
                 dto.setUserId(property.getUser().getId());
+                dto.setSellerEmail(property.getUser().getEmail());
+                dto.setSellerUsername(property.getUser().getUsername());
             }
 
             return dto;
@@ -254,9 +267,12 @@ public class PropertyController {
     @GetMapping("/images/{filename:.+}")
     public ResponseEntity<Resource> serveImage(@PathVariable String filename) {
         try {
-            // Use absolute path resolution
-            Path uploadPath = Paths.get(System.getProperty("user.dir") + "/uploads").toAbsolutePath().normalize();
+            // Use persistent path relative to workspace
+            Path projectDir = Paths.get(System.getProperty("user.dir"));
+            Path uploadPath = projectDir.getParent().resolve("uploads").toAbsolutePath().normalize();
             Path filePath = uploadPath.resolve(filename).normalize();
+
+            logger.info("Serving image file: {} from {}", filename, filePath);
 
             // Security check: ensure the file is within uploads directory
             if (!filePath.startsWith(uploadPath)) {
@@ -264,6 +280,9 @@ public class PropertyController {
             }
 
             java.net.URI fileUri = filePath.toAbsolutePath().normalize().toUri();
+            if (fileUri == null) {
+                return ResponseEntity.internalServerError().build();
+            }
             Resource resource = new UrlResource(fileUri);
 
             if (resource.exists() && resource.isReadable()) {
@@ -308,17 +327,23 @@ public class PropertyController {
     // ==========================
     // UPDATE PROPERTY (PUT)
     // ==========================
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProperty(
             @PathVariable Long id,
-            @RequestBody PropertyResponse updatedProperty,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String price,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String contactNumber,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) List<MultipartFile> images,
+            @RequestParam(required = false) List<String> imagesToDelete,
             @RequestHeader("Authorization") String authHeader) {
         logger.info("Received update request for property id: {}", id);
-        logger.info("Update payload: {}", updatedProperty);
 
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                logger.warn("Unauthorized update attempt (missing or invalid header)");
                 return ResponseEntity.status(401).body("Unauthorized");
             }
 
@@ -332,28 +357,84 @@ public class PropertyController {
 
             // Check if user is the owner of the property
             if (!property.getUser().getId().equals(user.getId())) {
-                logger.warn("User {} tried to update property {} belonging to user {}", user.getId(), id,
-                        property.getUser().getId());
                 return ResponseEntity.status(403).body("You are not authorized to update this property");
             }
 
             // Update property fields
             boolean changed = false;
-            if (updatedProperty.getTitle() != null && !updatedProperty.getTitle().isEmpty()) {
-                property.setTitle(updatedProperty.getTitle());
+            if (title != null && !title.isEmpty()) {
+                property.setTitle(title);
                 changed = true;
             }
-            if (updatedProperty.getPrice() != null && !updatedProperty.getPrice().isEmpty()) {
-                property.setPrice(updatedProperty.getPrice());
+            if (price != null && !price.isEmpty()) {
+                property.setPrice(price);
                 changed = true;
             }
-            if (updatedProperty.getLocation() != null && !updatedProperty.getLocation().isEmpty()) {
-                property.setLocation(updatedProperty.getLocation());
+            if (location != null && !location.isEmpty()) {
+                property.setLocation(location);
                 changed = true;
             }
-            if (updatedProperty.getDescription() != null && !updatedProperty.getDescription().isEmpty()) {
-                property.setDescription(updatedProperty.getDescription());
+            if (description != null && !description.isEmpty()) {
+                property.setDescription(description);
                 changed = true;
+            }
+            if (contactNumber != null && !contactNumber.isEmpty()) {
+                property.setContactNumber(contactNumber);
+                changed = true;
+            }
+            if (type != null && !type.isEmpty()) {
+                property.setType(type);
+                changed = true;
+            }
+            if (category != null && !category.isEmpty()) {
+                property.setCategory(category);
+                changed = true;
+            }
+
+            List<String> currentImages = property.getImageNames();
+            if (currentImages == null) {
+                currentImages = new ArrayList<>();
+            }
+
+            // Handle image deletions
+            if (imagesToDelete != null && !imagesToDelete.isEmpty()) {
+                Path projectDir = Paths.get(System.getProperty("user.dir"));
+                Path uploadPath = projectDir.getParent().resolve("uploads");
+
+                for (String imageName : imagesToDelete) {
+                    if (currentImages.contains(imageName)) {
+                        currentImages.remove(imageName);
+                        // Optional: delete from filesystem
+                        try {
+                            Path filePath = uploadPath.resolve(imageName);
+                            Files.deleteIfExists(filePath);
+                        } catch (IOException e) {
+                            logger.warn("Failed to delete file: " + imageName);
+                        }
+                        changed = true;
+                    }
+                }
+                property.setImageNames(currentImages);
+            }
+
+            // Handle new images
+            if (images != null && !images.isEmpty()) {
+                // 📁 upload directory - persistent
+                Path projectDir = Paths.get(System.getProperty("user.dir"));
+                Path uploadPath = projectDir.getParent().resolve("uploads");
+                String uploadDir = uploadPath.toString() + "/";
+                Files.createDirectories(uploadPath);
+
+                for (MultipartFile file : images) {
+                    if (!file.isEmpty()) {
+                        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+                        Path filePath = Paths.get(uploadDir, fileName);
+                        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                        currentImages.add(fileName);
+                        changed = true;
+                    }
+                }
+                property.setImageNames(currentImages);
             }
 
             if (changed) {
@@ -371,9 +452,12 @@ public class PropertyController {
             response.setDescription(property.getDescription());
             response.setType(property.getType());
             response.setCategory(property.getCategory());
+            response.setContactNumber(property.getContactNumber());
             response.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
             if (property.getUser() != null) {
                 response.setUserId(property.getUser().getId());
+                response.setSellerEmail(property.getUser().getEmail());
+                response.setSellerUsername(property.getUser().getUsername());
             }
 
             return ResponseEntity.ok(response);
@@ -452,12 +536,15 @@ public class PropertyController {
                 dto.setDescription(property.getDescription());
                 dto.setType(property.getType());
                 dto.setCategory(property.getCategory());
+                dto.setContactNumber(property.getContactNumber());
 
                 List<String> imageNames = property.getImageNames();
                 dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
 
                 if (property.getUser() != null) {
                     dto.setUserId(property.getUser().getId());
+                    dto.setSellerEmail(property.getUser().getEmail());
+                    dto.setSellerUsername(property.getUser().getUsername());
                 }
 
                 return dto;

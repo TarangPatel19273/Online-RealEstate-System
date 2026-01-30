@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./Auth.css";
 
 function Login() {
@@ -10,10 +10,22 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const location = useLocation();
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) { navigate("/"); }
-  }, [navigate]);
+
+    if (location.state?.message) {
+      setMessage(location.state.message);
+      // Clear state so message doesn't persist on refresh or subsequent navigations? 
+      // React router state persists on refresh, but let's leave it simple.
+      // We could clear it, but modifying location state is tricky without navigation.
+      // If we navigate replace option, we can clear it.
+      // But let's just show it.
+      window.history.replaceState({}, document.title)
+    }
+  }, [navigate, location]);
 
   const handleLogin = async () => {
     if (!usernameOrEmail || !password) {
@@ -63,7 +75,12 @@ function Login() {
             </div>
           </button>
         </form>
-        {message && (<div className="auth-message error"><span className="message-icon">⚠️</span><span>{message}</span></div>)}
+        {message && (
+          <div className={`auth-message ${message.toLowerCase().includes("success") || message.toLowerCase().includes("verified") ? "success" : "error"}`}>
+            <span className="message-icon">{message.toLowerCase().includes("success") || message.toLowerCase().includes("verified") ? "✅" : "⚠️"}</span>
+            <span>{message}</span>
+          </div>
+        )}
         <div className="auth-footer">
           <p className="auth-footer-text">Don't have an account?</p>
           <span className="auth-link" onClick={() => navigate("/signup")}>Create Account <span className="link-arrow">→</span></span>

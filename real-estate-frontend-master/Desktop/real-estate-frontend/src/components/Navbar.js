@@ -39,8 +39,8 @@ function Navbar() {
 
         {/* Navigation Links */}
         <div className="navbar-links">
-          <div className="nav-item" onClick={() => navigate("/")}>Buy</div>
-          <div className="nav-item" onClick={() => navigate("/")}>Rent</div>
+          <div className="nav-item" onClick={() => navigate("/?type=Buy")}>Buy</div>
+          <div className="nav-item" onClick={() => navigate("/?type=Rent")}>Rent</div>
           <div className="nav-item" onClick={() => navigate("/sell-property")}>Sell</div>
           <div className="nav-item" onClick={() => navigate("/my-properties")}>My Dashboard</div>
         </div>

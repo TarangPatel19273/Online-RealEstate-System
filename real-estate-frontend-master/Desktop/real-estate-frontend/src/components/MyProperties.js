@@ -78,6 +78,9 @@ const MyProperties = () => {
     }
   };
 
+  const [newImages, setNewImages] = useState([]);
+  const [imagesToDelete, setImagesToDelete] = useState([]);
+
   const handleEditClick = (property) => {
     console.log("Edit clicked for property:", property);
     setEditingId(property.id);
@@ -85,17 +88,53 @@ const MyProperties = () => {
       title: property.title,
       price: property.price,
       location: property.location,
-      description: property.description
+      description: property.description,
+      contactNumber: property.contactNumber || "",
+      type: property.type || "Sell",
+      category: property.category || "Residential",
+      currentImages: property.imageUrls || []
     });
+    setNewImages([]);
+    setImagesToDelete([]);
+  };
+
+  const handleRemoveImage = (imageName) => {
+    setImagesToDelete(prev => [...prev, imageName]);
+    setEditData(prev => ({
+      ...prev,
+      currentImages: prev.currentImages.filter(img => img !== imageName)
+    }));
   };
 
   const handleSaveEdit = async (propertyId) => {
     console.log("Saving edit for propertyId:", propertyId, "Data:", editData);
     try {
       setUpdating(true);
-      const response = await updateProperty(propertyId, editData);
+
+      const formData = new FormData();
+      formData.append("title", editData.title);
+      formData.append("price", editData.price);
+      formData.append("location", editData.location);
+      formData.append("description", editData.description);
+      formData.append("contactNumber", editData.contactNumber);
+      formData.append("type", editData.type);
+      formData.append("category", editData.category);
+
+      // Append images to delete
+      if (imagesToDelete.length > 0) {
+        imagesToDelete.forEach(img => {
+          formData.append("imagesToDelete", img);
+        });
+      }
+
+      // Append new images
+      for (let i = 0; i < newImages.length; i++) {
+        formData.append("images", newImages[i]);
+      }
+
+      const response = await updateProperty(propertyId, formData);
       console.log("Update success:", response);
-      
+
       // Update the property in the list with the returned data
       setProperties(prev => prev.map(p => {
         if (p.id === propertyId) {
@@ -105,19 +144,24 @@ const MyProperties = () => {
             price: response.data.price || p.price,
             location: response.data.location || p.location,
             description: response.data.description || p.description,
+            contactNumber: response.data.contactNumber || p.contactNumber,
+            type: response.data.type || p.type,
+            category: response.data.category || p.category,
             imageUrls: response.data.imageUrls || p.imageUrls
           };
         }
         return p;
       }));
-      
+
       setEditingId(null);
       setEditData({});
+      setNewImages([]);
+      setImagesToDelete([]);
       alert("Property updated successfully");
     } catch (err) {
       console.error("Error updating property:", err);
-      const errorMsg = typeof err.response?.data === 'string' 
-        ? err.response.data 
+      const errorMsg = typeof err.response?.data === 'string'
+        ? err.response.data
         : err.response?.data?.message || "Failed to update property";
       alert(errorMsg);
     } finally {
@@ -408,7 +452,7 @@ const MyProperties = () => {
                     border: "1px solid #dee2e6"
                   }}>
                     <h5>Edit Property</h5>
-                    
+
                     <div style={{ marginBottom: "10px" }}>
                       <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Title</label>
                       <input
@@ -441,12 +485,65 @@ const MyProperties = () => {
                       />
                     </div>
 
+                    <div style={{ marginBottom: "10px", display: "flex", gap: "10px" }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Type</label>
+                        <select
+                          value={editData.type || "Sell"}
+                          onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                          style={{
+                            width: "100%",
+                            padding: "8px",
+                            borderRadius: "4px",
+                            border: "1px solid #ccc",
+                            boxSizing: "border-box"
+                          }}
+                        >
+                          <option value="Sell">Sell</option>
+                          <option value="Rent">Rent</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Category</label>
+                        <select
+                          value={editData.category || "Residential"}
+                          onChange={(e) => setEditData({ ...editData, category: e.target.value })}
+                          style={{
+                            width: "100%",
+                            padding: "8px",
+                            borderRadius: "4px",
+                            border: "1px solid #ccc",
+                            boxSizing: "border-box"
+                          }}
+                        >
+                          <option value="Residential">Residential</option>
+                          <option value="Commercial">Commercial</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div style={{ marginBottom: "10px" }}>
                       <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Location</label>
                       <input
                         type="text"
                         value={editData.location || ""}
                         onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          borderRadius: "4px",
+                          border: "1px solid #ccc",
+                          boxSizing: "border-box"
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "10px" }}>
+                      <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Contact Number</label>
+                      <input
+                        type="tel"
+                        value={editData.contactNumber || ""}
+                        onChange={(e) => setEditData({ ...editData, contactNumber: e.target.value })}
                         style={{
                           width: "100%",
                           padding: "8px",
@@ -473,14 +570,73 @@ const MyProperties = () => {
                         }}
                       />
                     </div>
+
+                    {editData.currentImages && editData.currentImages.length > 0 && (
+                      <div style={{ marginTop: "10px" }}>
+                        <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Manage Photos</label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                          {editData.currentImages.map((img, index) => (
+                            <div key={index} style={{ position: "relative" }}>
+                              <img
+                                src={`http://localhost:8080/api/properties/images/${encodeURIComponent(img)}`}
+                                alt="property"
+                                style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "4px" }}
+                              />
+                              <button
+                                onClick={() => handleRemoveImage(img)}
+                                style={{
+                                  position: "absolute",
+                                  top: "-5px",
+                                  right: "-5px",
+                                  background: "red",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "50%",
+                                  width: "18px",
+                                  height: "18px",
+                                  cursor: "pointer",
+                                  fontSize: "12px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center"
+                                }}
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: "10px" }}>
+                      <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Add Photos</label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => setNewImages(e.target.files)}
+                        style={{
+                          width: "100%",
+                          padding: "8px"
+                        }}
+                      />
+                      {newImages && newImages.length > 0 && (
+                        <div style={{ fontSize: "12px", color: "green", marginTop: "4px" }}>
+                          {newImages.length} new photos selected
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                )
+                }
               </div>
             );
           })}
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 };
 

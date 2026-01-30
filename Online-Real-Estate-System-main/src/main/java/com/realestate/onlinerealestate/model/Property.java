@@ -22,6 +22,7 @@ public class Property {
 
     private String type; // Sell, Rent
     private String category; // Residential, Commercial
+    private String contactNumber;
 
     private LocalDateTime createdAt;
 
@@ -92,6 +93,14 @@ public class Property {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public void setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
     }
 
     public LocalDateTime getCreatedAt() {

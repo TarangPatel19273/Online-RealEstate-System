@@ -39,15 +39,16 @@ export const uploadProperty = (formData) => {
 };
 
 // Update property
-export const updateProperty = (id, propertyData) => {
+// Update property
+export const updateProperty = (id, formData) => {
   const token = localStorage.getItem("token");
   if (!token) {
     return Promise.reject(new Error("No authentication token found"));
   }
-  return axios.put(`${API_URL}/${id}`, propertyData, {
+  return axios.put(`${API_URL}/${id}`, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      "Content-Type": "multipart/form-data",
     },
   });
 };

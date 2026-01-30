@@ -11,6 +11,7 @@ function SellProperty() {
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
   const [type, setType] = useState("Sell");
   const [category, setCategory] = useState("Residential");
   const [images, setImages] = useState([]);
@@ -22,8 +23,8 @@ function SellProperty() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || !price || !location || !description || images.length === 0) {
-      setMessage("⚠️ All fields, including images, are required");
+    if (!title || !price || !location || !description || !contactNumber || images.length === 0) {
+      setMessage("⚠️ All fields, including contact number and images, are required");
       return;
     }
 
@@ -32,6 +33,7 @@ function SellProperty() {
     formData.append("price", price);
     formData.append("location", location);
     formData.append("description", description);
+    formData.append("contactNumber", contactNumber);
     formData.append("type", type);
     formData.append("category", category);
 
@@ -68,7 +70,9 @@ function SellProperty() {
       setTitle("");
       setPrice("");
       setLocation("");
+      setLocation("");
       setDescription("");
+      setContactNumber("");
       setImages([]);
 
     } catch (error) {
@@ -148,6 +152,16 @@ function SellProperty() {
                       placeholder="e.g. Mumbai, Maharashtra"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Contact Number</label>
+                    <input
+                      type="tel"
+                      className="form-input"
+                      placeholder="e.g. 9876543210"
+                      value={contactNumber}
+                      onChange={(e) => setContactNumber(e.target.value)}
                     />
                   </div>
                 </div>

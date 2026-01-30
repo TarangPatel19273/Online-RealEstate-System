@@ -10,6 +10,7 @@ const PropertyDetails = () => {
     const [loading, setLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isOwner, setIsOwner] = useState(false);
+    const [showContact, setShowContact] = useState(false);
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -48,30 +49,25 @@ const PropertyDetails = () => {
     }, [id]);
 
     useEffect(() => {
-        // Separate effect to check 'Who am I'
-        // Since we don't have an endpoint to return "My ID", we have to infer it.
-        // HACK: We will fetch "my-properties" to see if this property is in the list.
-        // This is safe but slightly inefficient. 
-        // A better way is to have an endpoint `GET /api/auth/me` returning the ID.
-
-        const checkOwnership = async () => {
-            const token = localStorage.getItem("token");
-            if (!token) return;
+        // Check ownership locally using stored user info
+        const checkOwnership = () => {
+            const storedUser = localStorage.getItem("user");
+            if (!storedUser || !property) return;
 
             try {
-                const res = await axios.get("http://localhost:8080/api/properties/my-properties", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const myProps = res.data || [];
-                const owns = myProps.some(p => p.id === Number(id));
-                setIsOwner(owns);
+                const user = JSON.parse(storedUser);
+                // Check if user ID or Email matches
+                if ((user.id && user.id === property.userId) ||
+                    (user.email && user.email === property.sellerEmail)) {
+                    setIsOwner(true);
+                }
             } catch (e) {
-                console.log("Not owner or error checking ownership");
+                console.error("Error checking ownership", e);
             }
-        }
+        };
 
-        if (id) checkOwnership();
-    }, [id]);
+        checkOwnership();
+    }, [property]);
 
 
     if (loading) return <div style={{ textAlign: "center", marginTop: "50px" }}>Loading...</div>;
@@ -160,12 +156,47 @@ const PropertyDetails = () => {
                                 >
                                     Manage Property
                                 </button>
-                                {/* Could add direct Edit/Delete here if we refactor logic, but navigating to manage page is safer given current codebase */}
                             </div>
                         ) : (
-                            <button style={{ padding: "12px 24px", background: "#333", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}>
-                                Contact Seller
-                            </button>
+                            <>
+                                {!showContact ? (
+                                    <button
+                                        onClick={() => setShowContact(true)}
+                                        style={{ padding: "12px 24px", background: "#333", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
+                                    >
+                                        Contact Seller
+                                    </button>
+                                ) : (
+                                    <div style={{ padding: "20px", background: "#e9ecef", borderRadius: "12px", marginTop: "20px" }}>
+                                        <h3 style={{ fontSize: "18px", marginBottom: "15px" }}>Seller Contact</h3>
+                                        <div style={{ marginBottom: "10px" }}>
+                                            <strong>Name:</strong> {property.sellerUsername || "N/A"}
+                                        </div>
+                                        {property.contactNumber && (
+                                            <div style={{ marginBottom: "10px" }}>
+                                                <strong>Phone:</strong> {property.contactNumber}
+                                            </div>
+                                        )}
+                                        <div style={{ marginBottom: "15px" }}>
+                                            <strong>Email:</strong> {property.sellerEmail || "N/A"}
+                                        </div>
+                                        {property.sellerEmail && (
+                                            <a
+                                                href={`mailto:${property.sellerEmail}?subject=Inquiry about ${property.title}`}
+                                                style={{ display: "inline-block", padding: "10px 20px", background: "#28a745", color: "white", textDecoration: "none", borderRadius: "6px", fontWeight: "600" }}
+                                            >
+                                                Send Email
+                                            </a>
+                                        )}
+                                        <button
+                                            onClick={() => setShowContact(false)}
+                                            style={{ marginLeft: "10px", padding: "10px 20px", background: "#6c757d", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
 
                     </div>

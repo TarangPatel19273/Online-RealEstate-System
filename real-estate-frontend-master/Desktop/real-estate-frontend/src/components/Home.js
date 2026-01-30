@@ -12,6 +12,27 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [activeTab, setActiveTab] = useState("Buy");
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setCurrentUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error("Failed to parse user from local storage");
+      }
+    }
+  }, []);
+
+  // Sync activeTab with URL "type" parameter
+  useEffect(() => {
+    const params = new URLSearchParams(locationHook.search);
+    const typeParam = params.get("type");
+    if (typeParam && ["Buy", "Rent", "Commercial"].includes(typeParam)) {
+      setActiveTab(typeParam);
+    }
+  }, [locationHook.search]);
 
   useEffect(() => {
     const params = new URLSearchParams(locationHook.search);
@@ -57,11 +78,15 @@ const Home = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    const params = new URLSearchParams();
     if (searchQuery.trim()) {
-      navigate(`/?location=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      navigate("/");
+      params.set("location", searchQuery.trim());
     }
+    // Include current active tab type in search
+    if (activeTab) {
+      params.set("type", activeTab);
+    }
+    navigate(`/?${params.toString()}`);
   }
 
   const handleNextImage = (e, propertyId, totalImages) => {
@@ -93,9 +118,24 @@ const Home = () => {
 
           <div className="hero-search-container">
             <div className="search-tabs">
-              <span className={`search-tab ${activeTab === "Buy" ? "active" : ""}`} onClick={() => setActiveTab("Buy")}>Buy</span>
-              <span className={`search-tab ${activeTab === "Rent" ? "active" : ""}`} onClick={() => setActiveTab("Rent")}>Rent</span>
-              <span className={`search-tab ${activeTab === "Commercial" ? "active" : ""}`} onClick={() => setActiveTab("Commercial")}>Commercial</span>
+              <span
+                className={`search-tab ${activeTab === "Buy" ? "active" : ""}`}
+                onClick={() => navigate(`/?type=Buy${searchQuery ? `&location=${encodeURIComponent(searchQuery)}` : ""}`)}
+              >
+                Buy
+              </span>
+              <span
+                className={`search-tab ${activeTab === "Rent" ? "active" : ""}`}
+                onClick={() => navigate(`/?type=Rent${searchQuery ? `&location=${encodeURIComponent(searchQuery)}` : ""}`)}
+              >
+                Rent
+              </span>
+              <span
+                className={`search-tab ${activeTab === "Commercial" ? "active" : ""}`}
+                onClick={() => navigate(`/?type=Commercial${searchQuery ? `&location=${encodeURIComponent(searchQuery)}` : ""}`)}
+              >
+                Commercial
+              </span>
             </div>
             <form className="hero-search-bar" onSubmit={handleSearch}>
               <div className="search-input-wrapper">
@@ -118,69 +158,95 @@ const Home = () => {
         <h2 className="section-title">Latest Properties</h2>
 
         <div className="properties-grid">
-          {properties.map(property => {
-            const currentIndex = currentImageIndex[property.id] || 0;
-            const hasImages = property.imageUrls && property.imageUrls.length > 0;
-            const totalImages = hasImages ? property.imageUrls.length : 0;
+          {properties
+            .filter(property => {
+              if (activeTab === "Buy") return property.type === "Sell";
+              if (activeTab === "Rent") return property.type === "Rent";
+              if (activeTab === "Commercial") return property.category === "Commercial";
+              return true;
+            })
+            .map(property => {
+              const currentIndex = currentImageIndex[property.id] || 0;
+              const hasImages = property.imageUrls && property.imageUrls.length > 0;
+              const totalImages = hasImages ? property.imageUrls.length : 0;
 
-            return (
-              <div key={property.id} className="property-card" onClick={() => navigate(`/property/${property.id}`)}>
-                {/* IMAGE CAROUSEL */}
-                <div className="card-image-wrapper">
-                  {hasImages ? (
-                    <>
-                      <img
-                        src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
-                        alt={property.title}
-                        className="card-image"
-                        onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
-                        }}
-                      />
-                      {totalImages > 1 && (
-                        <>
-                          <button className="card-nav-btn prev" onClick={(e) => handlePrevImage(e, property.id, totalImages)}>‹</button>
-                          <button className="card-nav-btn next" onClick={(e) => handleNextImage(e, property.id, totalImages)}>›</button>
-                        </>
-                      )}
-                      <div className="image-counter-badge">
-                        📷 {totalImages}
+              const isOwner = currentUser && (
+                currentUser.email === property.sellerEmail ||
+                currentUser.id === property.userId
+              );
+
+              return (
+                <div key={property.id} className="property-card" onClick={() => navigate(`/property/${property.id}`)}>
+                  {/* IMAGE CAROUSEL */}
+                  <div className="card-image-wrapper">
+                    {hasImages ? (
+                      <>
+                        <img
+                          src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
+                          alt={property.title}
+                          className="card-image"
+                          onError={(e) => {
+                            e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
+                          }}
+                        />
+                        {totalImages > 1 && (
+                          <>
+                            <button className="card-nav-btn prev" onClick={(e) => handlePrevImage(e, property.id, totalImages)}>‹</button>
+                            <button className="card-nav-btn next" onClick={(e) => handleNextImage(e, property.id, totalImages)}>›</button>
+                          </>
+                        )}
+                        <div className="image-counter-badge">
+                          📷 {totalImages}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="no-image-placeholder">
+                        <span>🏠 No Photos</span>
                       </div>
-                    </>
-                  ) : (
-                    <div className="no-image-placeholder">
-                      <span>🏠 No Photos</span>
+                    )}
+                  </div>
+
+                  {/* DETAILS */}
+                  <div className="card-details">
+                    <div className="card-header">
+                      <h3 className="card-price">₹ {property.price}</h3>
+                      <span className="card-title">{property.title}</span>
                     </div>
-                  )}
-                </div>
 
-                {/* DETAILS */}
-                <div className="card-details">
-                  <div className="card-header">
-                    <h3 className="card-price">₹ {property.price}</h3>
-                    <span className="card-title">{property.title}</span>
-                  </div>
+                    <div className="card-location">
+                      📍 {property.location}
+                    </div>
 
-                  <div className="card-location">
-                    📍 {property.location}
-                  </div>
+                    <p className="card-description">
+                      {property.description?.length > 80
+                        ? property.description.substring(0, 80) + "..."
+                        : property.description}
+                    </p>
 
-                  <p className="card-description">
-                    {property.description?.length > 80
-                      ? property.description.substring(0, 80) + "..."
-                      : property.description}
-                  </p>
-
-                  <div className="card-footer">
-                    <span className="card-tag">Ready to Move</span>
-                    <div className="card-actions">
-                      <button className="btn-contact-seller">Contact Seller</button>
+                    <div className="card-footer">
+                      <span className="card-tag" style={{ backgroundColor: property.type === "Sell" ? "#007bff" : "#28a745", color: "white" }}>
+                        {property.type === "Sell" ? "For Sale" : "For Rent"}
+                      </span>
+                      <span className="card-tag" style={{ marginLeft: "5px", backgroundColor: "#6c757d", color: "white" }}>
+                        {property.category}
+                      </span>
+                      <div className="card-actions">
+                        {!isOwner && (
+                          <button className="btn-contact-seller" onClick={(e) => {
+                            e.stopPropagation();
+                            // Handle contact logic here if needed
+                            alert(`Contact ${property.sellerEmail}`);
+                          }}>Contact Seller</button>
+                        )}
+                        {isOwner && (
+                          <span style={{ fontSize: "12px", color: "gray" }}>You own this property</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
 
         {properties.length === 0 && (
