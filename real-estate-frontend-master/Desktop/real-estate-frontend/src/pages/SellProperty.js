@@ -9,7 +9,13 @@ function SellProperty() {
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
-  const [location, setLocation] = useState("");
+
+  // Address Fields
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipCode, setZipCode] = useState("");
+
   const [description, setDescription] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [type, setType] = useState("Sell");
@@ -23,15 +29,18 @@ function SellProperty() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || !price || !location || !description || !contactNumber || images.length === 0) {
-      setMessage("⚠️ All fields, including contact number and images, are required");
+    if (!title || !price || !street || !city || !state || !zipCode || !description || !contactNumber || images.length === 0) {
+      setMessage("⚠️ All fields, including address details and images, are required");
       return;
     }
+
+    // Combine address fields into one location string for backend
+    const fullLocation = `${street}, ${city}, ${state} - ${zipCode}`;
 
     const formData = new FormData();
     formData.append("title", title);
     formData.append("price", price);
-    formData.append("location", location);
+    formData.append("location", fullLocation);
     formData.append("description", description);
     formData.append("contactNumber", contactNumber);
     formData.append("type", type);
@@ -69,8 +78,10 @@ function SellProperty() {
       // Clear form state
       setTitle("");
       setPrice("");
-      setLocation("");
-      setLocation("");
+      setStreet("");
+      setCity("");
+      setState("");
+      setZipCode("");
       setDescription("");
       setContactNumber("");
       setImages([]);
@@ -127,7 +138,7 @@ function SellProperty() {
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. Luxurious 3BHK Apartment in Bandra"
+                    placeholder="e.g. Luxurious 3BHK Apartment"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
@@ -145,16 +156,6 @@ function SellProperty() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Location</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Mumbai, Maharashtra"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
                     <label>Contact Number</label>
                     <input
                       type="tel"
@@ -162,6 +163,52 @@ function SellProperty() {
                       placeholder="e.g. 9876543210"
                       value={contactNumber}
                       onChange={(e) => setContactNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Address Section */}
+                <div className="form-section-title">Property Location</div>
+                <div className="form-group">
+                  <label>Street Address</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 123 Main Street, Apt 4B"
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>City</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Mumbai"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>State</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Maharashtra"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Zip Code</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. 400050"
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value)}
                     />
                   </div>
                 </div>

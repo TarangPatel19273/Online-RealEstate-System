@@ -74,8 +74,13 @@
   gap: 8px;
 }
 
-.form-group label .icon {
-  font-size: 16px;
+.form-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-top: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 /* Row for Price & Location */
@@ -158,7 +163,6 @@ select.form-input {
   gap: 12px;
   cursor: pointer;
   pointer-events: auto;
-  /* Ensure updated style works */
 }
 
 .file-input-label .upload-icon {
@@ -205,7 +209,6 @@ select.form-input {
   width: 100%;
   padding: 16px;
   background: #0078db;
-  /* Primary Blue from Index */
   color: white;
   border: none;
   border-radius: 8px;
@@ -330,255 +333,5 @@ select.form-input {
   .form-row {
     flex-direction: column;
     gap: 20px;
-  }
-}
-
-/* Form Wrapper */
-.sell-property-wrapper {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  padding: 40px;
-  max-width: 600px;
-  width: 100%;
-  animation: slideUp 0.6s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Title */
-.sell-property-title {
-  text-align: center;
-  font-size: 32px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Form */
-.sell-property-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Form Group */
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.form-group label .icon {
-  font-size: 16px;
-  color: #667eea;
-}
-
-/* Input Fields */
-.form-input,
-.form-textarea {
-  width: 100%;
-  padding: 14px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 15px;
-  color: #333;
-  transition: all 0.3s ease;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-
-.form-input:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.form-input::placeholder,
-.form-textarea::placeholder {
-  color: #aaa;
-}
-
-.form-textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-
-/* File Input */
-.file-input-wrapper {
-  position: relative;
-  overflow: hidden;
-  border: 2px dashed #e0e0e0;
-  border-radius: 10px;
-  padding: 20px;
-  text-align: center;
-  background: #f8f9fa;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.file-input-wrapper:hover {
-  border-color: #667eea;
-  background: #f0f4ff;
-}
-
-.file-input-wrapper input[type="file"] {
-  position: absolute;
-  left: -9999px;
-}
-
-.file-input-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.file-input-label .upload-icon {
-  font-size: 40px;
-  color: #667eea;
-}
-
-.file-input-label .upload-text {
-  font-size: 15px;
-  color: #555;
-  font-weight: 500;
-}
-
-.file-input-label .upload-hint {
-  font-size: 13px;
-  color: #999;
-}
-
-.files-selected {
-  margin-top: 10px;
-  font-size: 14px;
-  color: #667eea;
-  font-weight: 500;
-}
-
-/* Submit Button */
-.submit-button {
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 10px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-}
-
-.submit-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-}
-
-.submit-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.submit-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Message */
-.message {
-  margin-top: 20px;
-  padding: 14px 18px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 500;
-  text-align: center;
-  animation: fadeIn 0.4s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.message.success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.message.error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .sell-property-wrapper {
-    padding: 30px 20px;
-    margin: 20px;
-  }
-
-  .sell-property-title {
-    font-size: 26px;
-  }
-
-  .form-input,
-  .form-textarea {
-    padding: 12px 14px;
-  }
-
-  .submit-button {
-    padding: 14px;
-  }
-}
-
-@media (max-width: 480px) {
-  .sell-property-wrapper {
-    padding: 24px 16px;
-  }
-
-  .sell-property-title {
-    font-size: 22px;
-    margin-bottom: 20px;
-  }
-
-  .form-group {
-    gap: 16px;
   }
 }
