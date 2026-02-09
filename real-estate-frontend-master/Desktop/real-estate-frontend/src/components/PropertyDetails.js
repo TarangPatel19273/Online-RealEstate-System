@@ -11,6 +11,7 @@ const PropertyDetails = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isOwner, setIsOwner] = useState(false);
     const [showContact, setShowContact] = useState(false);
+    const [activeTab, setActiveTab] = useState("Overview");
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -76,99 +77,259 @@ const PropertyDetails = () => {
     const hasImages = property.imageUrls && property.imageUrls.length > 0;
     const totalImages = hasImages ? property.imageUrls.length : 0;
 
+    // Calculate configuration text
+    const configText = `${property.bedrooms || 0}BHK ${property.bathrooms || 0}Baths`;
+
     return (
         <div>
             <Navbar />
-            <div style={{ maxWidth: "1000px", margin: "20px auto", padding: "20px", fontFamily: "'Inter', sans-serif" }}>
+            <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "0", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", background: "#fff" }}>
 
-                <button onClick={() => navigate(-1)} style={{ marginBottom: "20px", cursor: "pointer", border: "none", background: "none", fontSize: "16px" }}>
-                    ← Back
-                </button>
+                {/* Header Section */}
+                <div style={{ background: "#f8f9fa", padding: "20px 40px", borderBottom: "1px solid #e0e0e0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
+                        <div>
+                            <h1 style={{ fontSize: "42px", fontWeight: "700", margin: "0 0 5px 0", color: "#333" }}>
+                                ₹{property.price}
+                            </h1>
+                            <div style={{ fontSize: "20px", color: "#666", fontWeight: "500" }}>{configText}</div>
+                        </div>
+                        <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                            <button 
+                                style={{ padding: "8px 16px", border: "2px solid #e0e0e0", background: "white", borderRadius: "6px", cursor: "pointer", fontSize: "24px" }}
+                            >
+                                ♡
+                            </button>
+                            {!isOwner && (
+                                <button
+                                    onClick={() => setShowContact(true)}
+                                    style={{ padding: "12px 32px", background: "#0078db", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
+                                >
+                                    Contact Owner <span style={{ background: "rgba(255,255,255,0.3)", padding: "2px 8px", borderRadius: "4px", marginLeft: "8px" }}>FREE</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
-                <div style={{ display: "flex", gap: "40px", flexWrap: "wrap" }}>
+                    {/* RERA Status */}
+                    <div style={{ marginTop: "15px", display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ background: "#17a2b8", color: "white", padding: "4px 12px", borderRadius: "4px", fontSize: "13px", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                            <span style={{ fontSize: "16px" }}>ⓘ</span> RERA STATUS
+                        </span>
+                        <span style={{ color: "#666", fontSize: "14px" }}>NOT AVAILABLE</span>
+                    </div>
+                </div>
 
-                    {/* Image Section */}
-                    <div style={{ flex: "1.5", minWidth: "300px" }}>
+                {/* Tab Navigation */}
+                <div style={{ background: "white", borderBottom: "2px solid #e0e0e0", padding: "0 40px" }}>
+                    <div style={{ display: "flex", gap: "40px" }}>
+                        {["Overview", "Owner Details", "Featured Dealers", "Recommendations", "Articles"].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                style={{
+                                    padding: "15px 0",
+                                    background: "none",
+                                    border: "none",
+                                    borderBottom: activeTab === tab ? "3px solid #0078db" : "3px solid transparent",
+                                    color: activeTab === tab ? "#0078db" : "#666",
+                                    fontSize: "16px",
+                                    fontWeight: activeTab === tab ? "600" : "500",
+                                    cursor: "pointer",
+                                    transition: "all 0.3s"
+                                }}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Main Content */}
+                <div style={{ display: "flex", gap: "30px", padding: "30px 40px" }}>
+
+                    {/* Left Side - Images */}
+                    <div style={{ flex: "1", maxWidth: "700px" }}>
                         {hasImages ? (
-                            <div style={{ position: "relative", borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                            <div style={{ position: "relative", borderRadius: "8px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", background: "#f5f5f5" }}>
                                 <img
                                     src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentImageIndex])}`}
                                     alt={property.title}
-                                    style={{ width: "100%", height: "400px", objectFit: "cover" }}
+                                    style={{ width: "100%", height: "500px", objectFit: "cover" }}
                                 />
 
                                 {totalImages > 1 && (
                                     <>
                                         <button
                                             onClick={() => setCurrentImageIndex((prev) => (prev - 1 + totalImages) % totalImages)}
-                                            style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: "50%", width: "40px", height: "40px", cursor: "pointer", fontSize: "20px" }}
+                                            style={{ position: "absolute", left: "15px", top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.9)", color: "#333", border: "none", borderRadius: "50%", width: "45px", height: "45px", cursor: "pointer", fontSize: "24px", fontWeight: "bold", boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
                                         >‹</button>
                                         <button
                                             onClick={() => setCurrentImageIndex((prev) => (prev + 1) % totalImages)}
-                                            style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: "50%", width: "40px", height: "40px", cursor: "pointer", fontSize: "20px" }}
+                                            style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.9)", color: "#333", border: "none", borderRadius: "50%", width: "45px", height: "45px", cursor: "pointer", fontSize: "24px", fontWeight: "bold", boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
                                         >›</button>
                                     </>
                                 )}
+
+                                {/* Image Counter */}
+                                <div style={{ position: "absolute", bottom: "15px", right: "15px", background: "rgba(0,0,0,0.7)", color: "white", padding: "6px 12px", borderRadius: "4px", fontSize: "14px" }}>
+                                    {currentImageIndex + 1} / {totalImages}
+                                </div>
+
+                                {/* Photo watermark text */}
+                                <div style={{ position: "absolute", bottom: "50%", left: "50%", transform: "translate(-50%, 50%)", fontSize: "72px", color: "rgba(255,255,255,0.15)", fontWeight: "bold", pointerEvents: "none" }}>
+                                    Photos Under Screening
+                                </div>
                             </div>
                         ) : (
-                            <div style={{ height: "400px", background: "#f0f0f0", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <div style={{ height: "500px", background: "#f0f0f0", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", color: "#999" }}>
                                 No Images Available
                             </div>
                         )}
 
-                        {/* Thumbnails */}
-                        {totalImages > 1 && (
-                            <div style={{ display: "flex", gap: "10px", marginTop: "10px", overflowX: "auto" }}>
-                                {property.imageUrls.map((img, idx) => (
-                                    <img
-                                        key={idx}
-                                        src={`http://localhost:8080/api/properties/images/${encodeURIComponent(img)}`}
-                                        alt="thumbnail"
-                                        style={{ width: "80px", height: "60px", objectFit: "cover", borderRadius: "8px", cursor: "pointer", border: currentImageIndex === idx ? "2px solid #007bff" : "2px solid transparent" }}
-                                        onClick={() => setCurrentImageIndex(idx)}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        {/* Tabs for Videos/Property */}
+                        <div style={{ marginTop: "20px", display: "flex", gap: "20px", borderBottom: "2px solid #e0e0e0", paddingBottom: "10px" }}>
+                            <button style={{ background: "none", border: "none", fontSize: "16px", fontWeight: "600", color: "#333", cursor: "pointer", borderBottom: "3px solid #0078db", paddingBottom: "10px" }}>
+                                Property ({totalImages})
+                            </button>
+                            <button style={{ background: "none", border: "none", fontSize: "16px", fontWeight: "500", color: "#666", cursor: "pointer" }}>
+                                Videos (0)
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Details Section */}
+                    {/* Right Side - Property Details */}
                     <div style={{ flex: "1" }}>
-                        <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "10px", color: "#333" }}>{property.title}</h1>
-                        <h2 style={{ fontSize: "24px", color: "#28a745", marginBottom: "20px" }}>₹{property.price}</h2>
+                        
+                        {/* Area Section */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
+                            <div>
+                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                    <span style={{ fontSize: "20px" }}>📏</span> Area
+                                </div>
+                                <div style={{ fontSize: "18px", fontWeight: "700", color: "#0078db" }}>
+                                    {property.area ? `${property.area} sq.ft` : "N/A"}
+                                </div>
+                                {property.carpetArea && (
+                                    <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
+                                        Carpet area: {property.carpetArea} sq.ft
+                                    </div>
+                                )}
+                            </div>
 
-                        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", color: "#666" }}>
-                            <span>📍</span>
-                            <span style={{ fontSize: "18px" }}>{property.location}</span>
+                            <div>
+                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                    <span style={{ fontSize: "20px" }}>🏠</span> Configuration
+                                </div>
+                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                    {property.bedrooms || 0} Bedrooms, {property.bathrooms || 0} Bathrooms
+                                    {property.balconies ? `, ${property.balconies} Balcony` : ''}
+                                </div>
+                            </div>
                         </div>
 
-                        <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "12px", marginBottom: "30px" }}>
-                            <h3 style={{ fontSize: "18px", marginBottom: "10px" }}>Description</h3>
-                            <p style={{ lineHeight: "1.6", color: "#555" }}>{property.description}</p>
+                        {/* Price Section */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
+                            <div>
+                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                    <span style={{ fontSize: "20px" }}>💰</span> Price
+                                </div>
+                                <div style={{ fontSize: "18px", fontWeight: "700", color: "#333" }}>
+                                    ₹ {property.price} + Govt Charges & Tax
+                                </div>
+                                {property.area && (
+                                    <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
+                                        @ ₹{Math.round(parseFloat(property.price.replace(/,/g, '')) / property.area).toLocaleString()} per sq.ft <span style={{ color: "#28a745" }}>(Negotiable)</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                    <span style={{ fontSize: "20px" }}>📍</span> Address
+                                </div>
+                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                    {property.title}
+                                </div>
+                                <div style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}>
+                                    {property.location}
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Check Condition */}
+                        {/* Floor & Age */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
+                            <div>
+                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                    <span style={{ fontSize: "20px" }}>🏢</span> Floor Number
+                                </div>
+                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                    {property.floorNumber || "N/A"} {property.totalFloors ? `of ${property.totalFloors} Floors` : ''}
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                    <span style={{ fontSize: "20px" }}>📅</span> Property Age
+                                </div>
+                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                    {property.propertyAge || "Not specified"}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Description */}
+                        {property.description && (
+                            <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "25px" }}>
+                                <h3 style={{ fontSize: "18px", marginBottom: "12px", fontWeight: "700", color: "#333" }}>Description</h3>
+                                <p style={{ lineHeight: "1.7", color: "#555", fontSize: "15px" }}>{property.description}</p>
+                            </div>
+                        )}
+
+                        {/* Amenities */}
+                        {property.amenities && property.amenities.length > 0 && (
+                            <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "25px" }}>
+                                <h3 style={{ fontSize: "18px", marginBottom: "15px", fontWeight: "700", color: "#333" }}>Amenities</h3>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+                                    {(typeof property.amenities === 'string' ? JSON.parse(property.amenities) : property.amenities).map((amenity, idx) => (
+                                        <div key={idx} style={{ fontSize: "14px", color: "#333", display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span style={{ color: "#28a745", fontWeight: "bold" }}>✓</span> {amenity}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Property Type Tags */}
+                        <div style={{ display: "flex", gap: "10px", marginBottom: "25px", flexWrap: "wrap" }}>
+                            <span style={{ padding: "8px 16px", background: "#007bff", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
+                                {property.type === "Sell" ? "For Sale" : property.type === "Rent" ? "For Rent" : property.type}
+                            </span>
+                            <span style={{ padding: "8px 16px", background: "#6c757d", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
+                                {property.category || "Residential"}
+                            </span>
+                            {property.userType && (
+                                <span style={{ padding: "8px 16px", background: "#17a2b8", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
+                                    {property.userType === "Owner" ? "👤 Owner" : "💼 Broker"}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
                         {isOwner ? (
                             <div style={{ display: "flex", gap: "10px" }}>
                                 <button
                                     onClick={() => navigate("/my-properties")}
-                                    style={{ padding: "12px 24px", background: "#007bff", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
+                                    style={{ padding: "14px 28px", background: "#007bff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
                                 >
                                     Manage Property
                                 </button>
                             </div>
                         ) : (
                             <>
-                                {!showContact ? (
-                                    <button
-                                        onClick={() => setShowContact(true)}
-                                        style={{ padding: "12px 24px", background: "#333", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
-                                    >
-                                        Contact Seller
-                                    </button>
-                                ) : (
-                                    <div style={{ padding: "20px", background: "#e9ecef", borderRadius: "12px", marginTop: "20px" }}>
-                                        <h3 style={{ fontSize: "18px", marginBottom: "15px" }}>Seller Contact</h3>
+                                {showContact && (
+                                    <div style={{ padding: "20px", background: "#e9ecef", borderRadius: "8px", marginTop: "20px" }}>
+                                        <h3 style={{ fontSize: "18px", marginBottom: "15px", fontWeight: "700" }}>Seller Contact</h3>
                                         <div style={{ marginBottom: "10px" }}>
                                             <strong>Name:</strong> {property.sellerUsername || "N/A"}
                                         </div>
@@ -201,6 +362,40 @@ const PropertyDetails = () => {
 
                     </div>
                 </div>
+
+                {/* Places Nearby Section */}
+                <div style={{ padding: "30px 40px", background: "#f8f9fa", marginTop: "30px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "20px" }}>
+                        <div style={{ fontSize: "32px" }}>📍</div>
+                        <div>
+                            <h2 style={{ fontSize: "24px", fontWeight: "700", margin: "0 0 5px 0", color: "#333" }}>Places nearby</h2>
+                            <div style={{ fontSize: "15px", color: "#666" }}>{property.location}</div>
+                        </div>
+                        <button style={{ marginLeft: "auto", padding: "8px 20px", background: "white", border: "1px solid #0078db", color: "#0078db", borderRadius: "6px", cursor: "pointer", fontSize: "15px", fontWeight: "600" }}>
+                            View All (50)
+                        </button>
+                    </div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "15px" }}>
+                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🏫 Schools</div>
+                            <div style={{ fontSize: "14px", color: "#666" }}>Multiple schools nearby</div>
+                        </div>
+                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🏥 Hospitals</div>
+                            <div style={{ fontSize: "14px", color: "#666" }}>Healthcare facilities available</div>
+                        </div>
+                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🛒 Shopping</div>
+                            <div style={{ fontSize: "14px", color: "#666" }}>Shopping centers nearby</div>
+                        </div>
+                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🚇 Transport</div>
+                            <div style={{ fontSize: "14px", color: "#666" }}>Public transport accessible</div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     );

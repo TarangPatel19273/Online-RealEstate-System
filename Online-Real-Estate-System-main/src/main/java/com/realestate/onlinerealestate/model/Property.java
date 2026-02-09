@@ -16,13 +16,35 @@ public class Property {
     private String title;
     private String price;
     private String location;
+    private String address;
+    private String city;
+    private String state;
+    private String pincode;
 
     @Column(length = 2000)
     private String description;
 
     private String type; // Sell, Rent
     private String category; // Residential, Commercial
+    private String userType; // Owner, Broker
     private String contactNumber;
+    private String sellerEmail;
+    private String sellerUsername;
+
+    // Property Details
+    private Integer bedrooms;
+    private Integer bathrooms;
+    private Integer balconies;
+    private Double area; // Built-up area in sqft
+    private Double carpetArea; // Carpet area in sqft
+    private String floorNumber;
+    private Integer totalFloors;
+    private String propertyAge;
+
+    @ElementCollection
+    @CollectionTable(name = "property_amenities", joinColumns = @JoinColumn(name = "property_id"))
+    @Column(name = "amenity")
+    private List<String> amenities;
 
     private LocalDateTime createdAt;
 
@@ -36,6 +58,11 @@ public class Property {
     @CollectionTable(name = "property_images", joinColumns = @JoinColumn(name = "property_id"))
     @Column(name = "image_name")
     private List<String> imageNames;
+    
+    @ElementCollection
+    @CollectionTable(name = "property_image_urls", joinColumns = @JoinColumn(name = "property_id"))
+    @Column(name = "image_url")
+    private List<String> imageUrls;
 
     // ===== getters & setters =====
 
@@ -71,6 +98,38 @@ public class Property {
         this.location = location;
     }
 
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getPincode() {
+        return pincode;
+    }
+
+    public void setPincode(String pincode) {
+        this.pincode = pincode;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -95,12 +154,108 @@ public class Property {
         this.category = category;
     }
 
+    public String getUserType() {
+        return userType;
+    }
+
+    public void setUserType(String userType) {
+        this.userType = userType;
+    }
+
     public String getContactNumber() {
         return contactNumber;
     }
 
     public void setContactNumber(String contactNumber) {
         this.contactNumber = contactNumber;
+    }
+
+    public String getSellerEmail() {
+        return sellerEmail;
+    }
+
+    public void setSellerEmail(String sellerEmail) {
+        this.sellerEmail = sellerEmail;
+    }
+
+    public String getSellerUsername() {
+        return sellerUsername;
+    }
+
+    public void setSellerUsername(String sellerUsername) {
+        this.sellerUsername = sellerUsername;
+    }
+
+    public Integer getBedrooms() {
+        return bedrooms;
+    }
+
+    public void setBedrooms(Integer bedrooms) {
+        this.bedrooms = bedrooms;
+    }
+
+    public Integer getBathrooms() {
+        return bathrooms;
+    }
+
+    public void setBathrooms(Integer bathrooms) {
+        this.bathrooms = bathrooms;
+    }
+
+    public Integer getBalconies() {
+        return balconies;
+    }
+
+    public void setBalconies(Integer balconies) {
+        this.balconies = balconies;
+    }
+
+    public Double getArea() {
+        return area;
+    }
+
+    public void setArea(Double area) {
+        this.area = area;
+    }
+
+    public Double getCarpetArea() {
+        return carpetArea;
+    }
+
+    public void setCarpetArea(Double carpetArea) {
+        this.carpetArea = carpetArea;
+    }
+
+    public String getFloorNumber() {
+        return floorNumber;
+    }
+
+    public void setFloorNumber(String floorNumber) {
+        this.floorNumber = floorNumber;
+    }
+
+    public Integer getTotalFloors() {
+        return totalFloors;
+    }
+
+    public void setTotalFloors(Integer totalFloors) {
+        this.totalFloors = totalFloors;
+    }
+
+    public String getPropertyAge() {
+        return propertyAge;
+    }
+
+    public void setPropertyAge(String propertyAge) {
+        this.propertyAge = propertyAge;
+    }
+
+    public List<String> getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(List<String> amenities) {
+        this.amenities = amenities;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -117,6 +272,14 @@ public class Property {
 
     public void setImageNames(List<String> imageNames) {
         this.imageNames = imageNames;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 
     public User getUser() {

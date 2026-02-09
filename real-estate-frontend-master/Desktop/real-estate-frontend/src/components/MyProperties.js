@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { deleteProperty, updateProperty } from "../services/propertyService";
 import Navbar from "./Navbar";
+import { useNavigate } from "react-router-dom";
 
 const MyProperties = () => {
+  const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const [loading, setLoading] = useState(true);
@@ -82,20 +84,7 @@ const MyProperties = () => {
   const [imagesToDelete, setImagesToDelete] = useState([]);
 
   const handleEditClick = (property) => {
-    console.log("Edit clicked for property:", property);
-    setEditingId(property.id);
-    setEditData({
-      title: property.title,
-      price: property.price,
-      location: property.location,
-      description: property.description,
-      contactNumber: property.contactNumber || "",
-      type: property.type || "Sell",
-      category: property.category || "Residential",
-      currentImages: property.imageUrls || []
-    });
-    setNewImages([]);
-    setImagesToDelete([]);
+    navigate("/sell-property", { state: { editProperty: property } });
   };
 
   const handleRemoveImage = (imageName) => {

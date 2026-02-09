@@ -60,10 +60,24 @@ public class PropertyController {
             @RequestParam String title,
             @RequestParam String price,
             @RequestParam String location,
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String pincode,
             @RequestParam String description,
             @RequestParam(defaultValue = "Sell") String type,
             @RequestParam(defaultValue = "Residential") String category,
+            @RequestParam(required = false) String userType,
             @RequestParam(required = false) String contactNumber,
+            @RequestParam(required = false) Integer bedrooms,
+            @RequestParam(required = false) Integer bathrooms,
+            @RequestParam(required = false) Integer balconies,
+            @RequestParam(required = false) Double area,
+            @RequestParam(required = false) Double carpetArea,
+            @RequestParam(required = false) String floorNumber,
+            @RequestParam(required = false) Integer totalFloors,
+            @RequestParam(required = false) String propertyAge,
+            @RequestParam(required = false) List<String> amenities,
             @RequestParam("images") List<MultipartFile> images,
             @RequestHeader("Authorization") String authHeader) {
 
@@ -87,8 +101,7 @@ public class PropertyController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 📁 upload directory - Use parent directory of the project to ensure
-            // persistence
+            // 📁 upload directory - Use parent directory of the project to ensure persistence
             Path projectDir = Paths.get(System.getProperty("user.dir"));
             Path uploadPath = projectDir.getParent().resolve("uploads");
             String uploadDir = uploadPath.toString() + "/";
@@ -98,30 +111,42 @@ public class PropertyController {
             property.setTitle(title);
             property.setPrice(price);
             property.setLocation(location);
+            property.setAddress(address);
+            property.setCity(city);
+            property.setState(state);
+            property.setPincode(pincode);
             property.setDescription(description);
             property.setType(type);
             property.setCategory(category);
+            property.setUserType(userType);
             property.setContactNumber(contactNumber);
+            property.setBedrooms(bedrooms);
+            property.setBathrooms(bathrooms);
+            property.setBalconies(balconies);
+            property.setArea(area);
+            property.setCarpetArea(carpetArea);
+            property.setFloorNumber(floorNumber);
+            property.setTotalFloors(totalFloors);
+            property.setPropertyAge(propertyAge);
+            property.setAmenities(amenities);
             property.setCreatedAt(LocalDateTime.now());
             property.setUser(user);
+            property.setSellerEmail(user.getEmail());
+            property.setSellerUsername(user.getUsername());
 
             List<String> imageNames = new ArrayList<>();
 
             for (MultipartFile file : images) {
                 String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-
                 Path filePath = Paths.get(uploadDir, fileName);
-
                 Files.copy(
                         file.getInputStream(),
                         filePath,
                         StandardCopyOption.REPLACE_EXISTING);
-
                 imageNames.add(fileName);
             }
 
             property.setImageNames(imageNames);
-
             propertyRepository.save(property);
 
             return ResponseEntity.ok("Property uploaded successfully");
@@ -146,13 +171,26 @@ public class PropertyController {
             dto.setTitle(property.getTitle());
             dto.setPrice(property.getPrice());
             dto.setLocation(property.getLocation());
+            dto.setAddress(property.getAddress());
+            dto.setCity(property.getCity());
+            dto.setState(property.getState());
+            dto.setPincode(property.getPincode());
             dto.setDescription(property.getDescription());
             dto.setType(property.getType());
             dto.setCategory(property.getCategory());
+            dto.setUserType(property.getUserType());
             dto.setContactNumber(property.getContactNumber());
+            dto.setBedrooms(property.getBedrooms());
+            dto.setBathrooms(property.getBathrooms());
+            dto.setBalconies(property.getBalconies());
+            dto.setArea(property.getArea());
+            dto.setCarpetArea(property.getCarpetArea());
+            dto.setFloorNumber(property.getFloorNumber());
+            dto.setTotalFloors(property.getTotalFloors());
+            dto.setPropertyAge(property.getPropertyAge());
+            dto.setAmenities(property.getAmenities());
 
-            // Return whatever image names are stored; let client handle missing ones
-            // gracefully
+            // Return whatever image names are stored; let client handle missing ones gracefully
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
 
@@ -182,10 +220,24 @@ public class PropertyController {
             dto.setTitle(property.getTitle());
             dto.setPrice(property.getPrice());
             dto.setLocation(property.getLocation());
+            dto.setAddress(property.getAddress());
+            dto.setCity(property.getCity());
+            dto.setState(property.getState());
+            dto.setPincode(property.getPincode());
             dto.setDescription(property.getDescription());
             dto.setType(property.getType());
             dto.setCategory(property.getCategory());
+            dto.setUserType(property.getUserType());
             dto.setContactNumber(property.getContactNumber());
+            dto.setBedrooms(property.getBedrooms());
+            dto.setBathrooms(property.getBathrooms());
+            dto.setBalconies(property.getBalconies());
+            dto.setArea(property.getArea());
+            dto.setCarpetArea(property.getCarpetArea());
+            dto.setFloorNumber(property.getFloorNumber());
+            dto.setTotalFloors(property.getTotalFloors());
+            dto.setPropertyAge(property.getPropertyAge());
+            dto.setAmenities(property.getAmenities());
             dto.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
 
             if (property.getUser() != null) {
@@ -241,10 +293,24 @@ public class PropertyController {
             dto.setTitle(property.getTitle());
             dto.setPrice(property.getPrice());
             dto.setLocation(property.getLocation());
+            dto.setAddress(property.getAddress());
+            dto.setCity(property.getCity());
+            dto.setState(property.getState());
+            dto.setPincode(property.getPincode());
             dto.setDescription(property.getDescription());
             dto.setType(property.getType());
             dto.setCategory(property.getCategory());
+            dto.setUserType(property.getUserType());
             dto.setContactNumber(property.getContactNumber());
+            dto.setBedrooms(property.getBedrooms());
+            dto.setBathrooms(property.getBathrooms());
+            dto.setBalconies(property.getBalconies());
+            dto.setArea(property.getArea());
+            dto.setCarpetArea(property.getCarpetArea());
+            dto.setFloorNumber(property.getFloorNumber());
+            dto.setTotalFloors(property.getTotalFloors());
+            dto.setPropertyAge(property.getPropertyAge());
+            dto.setAmenities(property.getAmenities());
 
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
@@ -333,10 +399,24 @@ public class PropertyController {
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String price,
             @RequestParam(required = false) String location,
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String pincode,
             @RequestParam(required = false) String description,
             @RequestParam(required = false) String contactNumber,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String userType,
+            @RequestParam(required = false) Integer bedrooms,
+            @RequestParam(required = false) Integer bathrooms,
+            @RequestParam(required = false) Integer balconies,
+            @RequestParam(required = false) Double area,
+            @RequestParam(required = false) Double carpetArea,
+            @RequestParam(required = false) String floorNumber,
+            @RequestParam(required = false) Integer totalFloors,
+            @RequestParam(required = false) String propertyAge,
+            @RequestParam(required = false) List<String> amenities,
             @RequestParam(required = false) List<MultipartFile> images,
             @RequestParam(required = false) List<String> imagesToDelete,
             @RequestHeader("Authorization") String authHeader) {
@@ -374,6 +454,22 @@ public class PropertyController {
                 property.setLocation(location);
                 changed = true;
             }
+            if (address != null && !address.isEmpty()) {
+                property.setAddress(address);
+                changed = true;
+            }
+            if (city != null && !city.isEmpty()) {
+                property.setCity(city);
+                changed = true;
+            }
+            if (state != null && !state.isEmpty()) {
+                property.setState(state);
+                changed = true;
+            }
+            if (pincode != null && !pincode.isEmpty()) {
+                property.setPincode(pincode);
+                changed = true;
+            }
             if (description != null && !description.isEmpty()) {
                 property.setDescription(description);
                 changed = true;
@@ -388,6 +484,46 @@ public class PropertyController {
             }
             if (category != null && !category.isEmpty()) {
                 property.setCategory(category);
+                changed = true;
+            }
+            if (userType != null && !userType.isEmpty()) {
+                property.setUserType(userType);
+                changed = true;
+            }
+            if (bedrooms != null) {
+                property.setBedrooms(bedrooms);
+                changed = true;
+            }
+            if (bathrooms != null) {
+                property.setBathrooms(bathrooms);
+                changed = true;
+            }
+            if (balconies != null) {
+                property.setBalconies(balconies);
+                changed = true;
+            }
+            if (area != null) {
+                property.setArea(area);
+                changed = true;
+            }
+            if (carpetArea != null) {
+                property.setCarpetArea(carpetArea);
+                changed = true;
+            }
+            if (floorNumber != null && !floorNumber.isEmpty()) {
+                property.setFloorNumber(floorNumber);
+                changed = true;
+            }
+            if (totalFloors != null) {
+                property.setTotalFloors(totalFloors);
+                changed = true;
+            }
+            if (propertyAge != null && !propertyAge.isEmpty()) {
+                property.setPropertyAge(propertyAge);
+                changed = true;
+            }
+            if (amenities != null) {
+                property.setAmenities(amenities);
                 changed = true;
             }
 
@@ -449,10 +585,24 @@ public class PropertyController {
             response.setTitle(property.getTitle());
             response.setPrice(property.getPrice());
             response.setLocation(property.getLocation());
+            response.setAddress(property.getAddress());
+            response.setCity(property.getCity());
+            response.setState(property.getState());
+            response.setPincode(property.getPincode());
             response.setDescription(property.getDescription());
             response.setType(property.getType());
             response.setCategory(property.getCategory());
+            response.setUserType(property.getUserType());
             response.setContactNumber(property.getContactNumber());
+            response.setBedrooms(property.getBedrooms());
+            response.setBathrooms(property.getBathrooms());
+            response.setBalconies(property.getBalconies());
+            response.setArea(property.getArea());
+            response.setCarpetArea(property.getCarpetArea());
+            response.setFloorNumber(property.getFloorNumber());
+            response.setTotalFloors(property.getTotalFloors());
+            response.setPropertyAge(property.getPropertyAge());
+            response.setAmenities(property.getAmenities());
             response.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
             if (property.getUser() != null) {
                 response.setUserId(property.getUser().getId());
@@ -533,10 +683,24 @@ public class PropertyController {
                 dto.setTitle(property.getTitle());
                 dto.setPrice(property.getPrice());
                 dto.setLocation(property.getLocation());
+                dto.setAddress(property.getAddress());
+                dto.setCity(property.getCity());
+                dto.setState(property.getState());
+                dto.setPincode(property.getPincode());
                 dto.setDescription(property.getDescription());
                 dto.setType(property.getType());
                 dto.setCategory(property.getCategory());
+                dto.setUserType(property.getUserType());
                 dto.setContactNumber(property.getContactNumber());
+                dto.setBedrooms(property.getBedrooms());
+                dto.setBathrooms(property.getBathrooms());
+                dto.setBalconies(property.getBalconies());
+                dto.setArea(property.getArea());
+                dto.setCarpetArea(property.getCarpetArea());
+                dto.setFloorNumber(property.getFloorNumber());
+                dto.setTotalFloors(property.getTotalFloors());
+                dto.setPropertyAge(property.getPropertyAge());
+                dto.setAmenities(property.getAmenities());
 
                 List<String> imageNames = property.getImageNames();
                 dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());

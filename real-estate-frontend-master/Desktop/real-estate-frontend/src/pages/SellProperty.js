@@ -1,80 +1,186 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
-import { useNavigate } from "react-router-dom";
+import PropertyListingForm from "../components/PropertyListingForm";
+import PropertyFormStepper from "../components/PropertyFormStepper";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./SellProperty.css";
 
 function SellProperty() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [title, setTitle] = useState("");
-  const [price, setPrice] = useState("");
-  const [location, setLocation] = useState("");
-  const [description, setDescription] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [type, setType] = useState("Sell");
-  const [category, setCategory] = useState("Residential");
-  const [images, setImages] = useState([]);
-
+  const [showStepper, setShowStepper] = useState(false);
+  const [initialFormData, setInitialFormData] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingPropertyId, setEditingPropertyId] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!title || !price || !location || !description || !contactNumber || images.length === 0) {
-      setMessage("⚠️ All fields, including contact number and images, are required");
-      return;
+  const normalizeAmenities = (amenities) => {
+    if (Array.isArray(amenities)) return amenities;
+    if (typeof amenities === "string") {
+      try {
+        const parsed = JSON.parse(amenities);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
     }
+    return [];
+  };
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("price", price);
-    formData.append("location", location);
-    formData.append("description", description);
-    formData.append("contactNumber", contactNumber);
-    formData.append("type", type);
-    formData.append("category", category);
+  const resolveCategory = (value) => {
+    const allowed = [
+      "Flat/Apartment",
+      "Independent House / Villa",
+      "Builder Floor",
+      "Plot / Land",
+      "1 RK/Studio Apartment",
+      "Serviced Apartment",
+      "Farmhouse",
+      "Other"
+    ];
+    return allowed.includes(value) ? value : "Flat/Apartment";
+  };
 
-    for (let i = 0; i < images.length; i++) {
-      formData.append("images", images[i]);
+  const mapEditPropertyToFormData = (property) => {
+    const propertyType = property.category === "Commercial" ? "Commercial" : "Residential";
+    return {
+      propertyId: property.id,
+      listingType: property.type || "Sell",
+      propertyType,
+      category: resolveCategory(property.category),
+      userType: property.userType || "Owner",
+      title: property.title || "",
+      location: property.location || "",
+      address: property.address || "",
+      city: property.city || "",
+      state: property.state || "",
+      pincode: property.pincode || "",
+      bedrooms: property.bedrooms || "",
+      bathrooms: property.bathrooms || "",
+      balconies: property.balconies || "",
+      area: property.area || "",
+      carpetArea: property.carpetArea || "",
+      floorNumber: property.floorNumber || "",
+      totalFloors: property.totalFloors || "",
+      propertyAge: property.propertyAge || "",
+      description: property.description || "",
+      amenities: normalizeAmenities(property.amenities),
+      contactNumber: property.contactNumber || "",
+      existingImages: property.imageUrls || [],
+      imagesToDelete: []
+    };
+  };
+
+  useEffect(() => {
+    const editProperty = location.state?.editProperty;
+    if (editProperty) {
+      setInitialFormData(mapEditPropertyToFormData(editProperty));
+      setEditingPropertyId(editProperty.id);
+      setIsEditing(true);
+      setShowStepper(true);
+      setMessage("");
     }
+  }, [location.state]);
 
+  const handleListingFormSubmit = (formDataFromModal) => {
+    setInitialFormData(formDataFromModal);
+    setShowStepper(true);
+    setMessage("");
+  };
+
+  const handleStepperBack = () => {
+    setShowStepper(false);
+  };
+
+  const handleFormComplete = async (completedFormData) => {
     try {
       setLoading(true);
       setMessage("");
 
       const token = localStorage.getItem("token");
       if (!token) {
-        setMessage("Please login before uploading a property.");
+        setMessage("❌ Please login before uploading a property.");
         setLoading(false);
         return;
       }
 
-      await axios.post(
-        "http://localhost:8080/api/properties/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
+      const formDataToSubmit = new FormData();
+      const locationText = [
+        completedFormData.address,
+        completedFormData.city,
+        completedFormData.state
+      ].filter(Boolean).join(", ");
+      const resolvedLocation = locationText || completedFormData.location || "";
+
+      formDataToSubmit.append("title", completedFormData.title || "");
+      formDataToSubmit.append("price", completedFormData.price || "");
+      formDataToSubmit.append("location", resolvedLocation);
+      formDataToSubmit.append("address", completedFormData.address || "");
+      formDataToSubmit.append("city", completedFormData.city || "");
+      formDataToSubmit.append("state", completedFormData.state || "");
+      formDataToSubmit.append("pincode", completedFormData.pincode || "");
+      formDataToSubmit.append("description", completedFormData.description || "");
+      formDataToSubmit.append("contactNumber", completedFormData.contactNumber || "");
+      formDataToSubmit.append("type", completedFormData.listingType || "Sell");
+      formDataToSubmit.append("category", completedFormData.category || "Residential");
+      formDataToSubmit.append("userType", completedFormData.userType || "Owner");
+      formDataToSubmit.append("bedrooms", completedFormData.bedrooms || "");
+      formDataToSubmit.append("bathrooms", completedFormData.bathrooms || "");
+      formDataToSubmit.append("balconies", completedFormData.balconies || "");
+      formDataToSubmit.append("area", completedFormData.area || "");
+      formDataToSubmit.append("carpetArea", completedFormData.carpetArea || "");
+      formDataToSubmit.append("floorNumber", completedFormData.floorNumber || "");
+      formDataToSubmit.append("totalFloors", completedFormData.totalFloors || "");
+      formDataToSubmit.append("propertyAge", completedFormData.propertyAge || "");
+
+      if (completedFormData.amenities && completedFormData.amenities.length > 0) {
+        completedFormData.amenities.forEach((amenity) => {
+          formDataToSubmit.append("amenities", amenity);
+        });
+      }
+
+      if (completedFormData.images && completedFormData.images.length > 0) {
+        for (let i = 0; i < completedFormData.images.length; i++) {
+          formDataToSubmit.append("images", completedFormData.images[i]);
         }
-      );
+      }
 
-      // SUCCESS
+      if (completedFormData.imagesToDelete && completedFormData.imagesToDelete.length > 0) {
+        completedFormData.imagesToDelete.forEach((img) => {
+          formDataToSubmit.append("imagesToDelete", img);
+        });
+      }
+
+      if (isEditing && editingPropertyId) {
+        await axios.put(
+          `http://localhost:8080/api/properties/${editingPropertyId}`,
+          formDataToSubmit,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      } else {
+        await axios.post(
+          "http://localhost:8080/api/properties/upload",
+          formDataToSubmit,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+
       setUploadSuccess(true);
-      setMessage("");
-      // Clear form state
-      setTitle("");
-      setPrice("");
-      setLocation("");
-      setLocation("");
-      setDescription("");
-      setContactNumber("");
-      setImages([]);
-
+      setShowStepper(false);
     } catch (error) {
       setMessage(
         error.response?.data || "❌ Upload failed. Please try again."
@@ -86,18 +192,22 @@ function SellProperty() {
 
   const handleReset = () => {
     setUploadSuccess(false);
+    setShowStepper(false);
+    setInitialFormData(null);
     setMessage("");
+    setIsEditing(false);
+    setEditingPropertyId(null);
   };
 
   return (
     <>
       <Navbar />
 
-      <div className="sell-property-container">
-        <div className="sell-property-wrapper">
+      {message && <div className="message error">{message}</div>}
 
-          {uploadSuccess ? (
-            /* SUCCESS STATE */
+      {uploadSuccess ? (
+        <div className="sell-property-container">
+          <div className="sell-property-wrapper">
             <div className="success-card">
               <div className="success-icon">🎉</div>
               <h2 className="success-title">Property Uploaded Successfully!</h2>
@@ -112,127 +222,21 @@ function SellProperty() {
                 </button>
               </div>
             </div>
-          ) : (
-            /* UPLOAD FORM */
-            <>
-              <h2 className="sell-property-title">🏠 Post a Property</h2>
-              <p className="sell-property-subtitle">Fill in the details to list your property for sale or rent.</p>
-
-              {message && <div className="message error">{message}</div>}
-
-              <form onSubmit={handleSubmit} className="sell-property-form">
-
-                <div className="form-group">
-                  <label>Title</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Luxurious 3BHK Apartment in Bandra"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Price (₹)</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      placeholder="e.g. 15000"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Location</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Mumbai, Maharashtra"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Contact Number</label>
-                    <input
-                      type="tel"
-                      className="form-input"
-                      placeholder="e.g. 9876543210"
-                      value={contactNumber}
-                      onChange={(e) => setContactNumber(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Property Type</label>
-                    <select className="form-input" value={type} onChange={(e) => setType(e.target.value)}>
-                      <option value="Sell">Sell (For Sale)</option>
-                      <option value="Rent">Rent (For Rent)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Category</label>
-                    <select className="form-input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                      <option value="Residential">Residential</option>
-                      <option value="Commercial">Commercial</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea
-                    className="form-textarea"
-                    placeholder="Describe key features, amenities, nearby places..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Property Images</label>
-                  <div className="file-input-wrapper">
-                    <label className="file-input-label">
-                      <div className="upload-icon">📷</div>
-                      <span className="upload-text">Click to upload photos</span>
-                      <span className="upload-hint">Supported: JPG, PNG (Max 5MB)</span>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={(e) => setImages(e.target.files)}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-                    {images.length > 0 && (
-                      <div className="files-selected">
-                        ✅ {images.length} file{images.length > 1 ? 's' : ''} selected
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="submit-button"
-                >
-                  {loading ? "Uploading..." : "Publish Listing"}
-                </button>
-              </form>
-            </>
-          )}
-
+          </div>
         </div>
-      </div>
+      ) : showStepper ? (
+        <PropertyFormStepper
+          formData={initialFormData || {}}
+          onComplete={handleFormComplete}
+          onBack={handleStepperBack}
+          loading={loading}
+          editMode={isEditing}
+        />
+      ) : (
+        <PropertyListingForm onSubmit={handleListingFormSubmit} />
+      )}
     </>
   );
 }
 
 export default SellProperty;
-
