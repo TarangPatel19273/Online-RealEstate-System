@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./PropertyListingForm.css";
 
 const PropertyListingForm = ({ onSubmit }) => {
@@ -7,6 +7,19 @@ const PropertyListingForm = ({ onSubmit }) => {
   const [category, setCategory] = useState("Flat/Apartment");
   const [showUserTypeModal, setShowUserTypeModal] = useState(false);
   const [userType, setUserType] = useState(null);
+  const [userName, setUserName] = useState("User");
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setUserName(user.fullName || user.username || "User");
+      } catch (e) {
+        console.error("Error parsing user");
+      }
+    }
+  }, []);
 
   const handleStartNow = (e) => {
     e.preventDefault();
@@ -24,168 +37,123 @@ const PropertyListingForm = ({ onSubmit }) => {
     setShowUserTypeModal(false);
   };
 
+  const categories = {
+    Residential: [
+      "Flat/Apartment",
+      "Independent House / Villa",
+      "Builder Floor",
+      "Plot / Land",
+      "1 RK/Studio Apartment",
+      "Serviced Apartment",
+      "Farmhouse"
+    ],
+    Commercial: [
+      "Commercial Space",
+      "Office",
+      "Retail Shop",
+      "Industrial",
+      "Land"
+    ]
+  };
+
   return (
     <div className="property-listing-form-container">
-      {/* Left Section - Marketing Content */}
-      <div className="marketing-section">
-        <div className="marketing-content">
-          <h1 className="marketing-title">
-            Sell or Rent Property
-          </h1>
-          <p className="marketing-highlight">
-            <span className="highlight-text">online faster</span> with EstateHub
-          </p>
-
-          <div className="benefits-list">
-            <div className="benefit-item">
-              <span className="checkmark">✓</span>
-              <span>Advertise for FREE</span>
-            </div>
-            <div className="benefit-item">
-              <span className="checkmark">✓</span>
-              <span>Get unlimited enquiries</span>
-            </div>
-            <div className="benefit-item">
-              <span className="checkmark">✓</span>
-              <span>Get shortlisted buyers and tenants</span>
-            </div>
-            <div className="benefit-item">
-              <span className="checkmark">✓</span>
-              <span>Assistance in co-ordinating site visits</span>
-            </div>
-          </div>
-
-          <div className="illustration">
-            <div className="illustration-placeholder">📱💼✉️🏢</div>
-          </div>
+      <div className="form-wrapper">
+        {/* Welcome Section */}
+        <div className="welcome-section">
+          <p className="welcome-text">Welcome back <span className="owner-name">{userName}</span>,</p>
         </div>
-      </div>
 
-      {/* Right Section - Form */}
-      <div className="form-section">
+        {/* Main Form Card */}
         <div className="form-card">
           <div className="form-header">
-            <h2>Start posting your property, it's free</h2>
-            <p className="form-subtitle">Add Basic Details</p>
+            <h1 className="form-title">Fill out basic details</h1>
+            <div className="form-title-underline"></div>
           </div>
 
           <form onSubmit={handleStartNow}>
-            {/* Listing Type Selection */}
-            <div className="form-group">
-              <label className="form-label">You're looking to ...</label>
-              <div className="radio-group">
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="listingType"
-                    value="Sell"
-                    checked={listingType === "Sell"}
-                    onChange={(e) => setListingType(e.target.value)}
-                  />
-                  Sell
-                </label>
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="listingType"
-                    value="Rent"
-                    checked={listingType === "Rent"}
-                    onChange={(e) => setListingType(e.target.value)}
-                  />
-                  Rent / Lease
-                </label>
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="listingType"
-                    value="PG"
-                    checked={listingType === "PG"}
-                    onChange={(e) => setListingType(e.target.value)}
-                  />
-                  PG
-                </label>
+            {/* Listing Type Section */}
+            <div className="form-section-box">
+              <label className="section-label">I'M LOOKING TO</label>
+              <div className="button-group">
+                {["Sell", "Rent / Lease", "PG"].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    className={`option-button ${
+                      (type === "Sell" && listingType === "Sell") ||
+                      (type === "Rent / Lease" && listingType === "Rent") ||
+                      (type === "PG" && listingType === "PG")
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => setListingType(type === "Rent / Lease" ? "Rent" : type)}
+                  >
+                    {type}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Property Type Selection */}
-            <div className="form-group">
-              <label className="form-label">And it's a ...</label>
-              
-              <div className="property-type-group">
-                <div className="checkbox-options">
-                  <label className="checkbox-option">
+            {/* Property Type Section */}
+            <div className="form-section-box">
+              <label className="section-label">WHAT KIND OF PROPERTY DO YOU HAVE?</label>
+              <div className="radio-inline-group">
+                {["Residential", "Commercial"].map((type) => (
+                  <label key={type} className="radio-inline">
                     <input
                       type="radio"
                       name="propertyType"
-                      value="Residential"
-                      checked={propertyType === "Residential"}
-                      onChange={(e) => setPropertyType(e.target.value)}
+                      value={type}
+                      checked={propertyType === type}
+                      onChange={(e) => {
+                        setPropertyType(e.target.value);
+                        setCategory(categories[e.target.value][0]);
+                      }}
                     />
-                    Residential
+                    <span>{type}</span>
                   </label>
-                  <label className="checkbox-option">
-                    <input
-                      type="radio"
-                      name="propertyType"
-                      value="Commercial"
-                      checked={propertyType === "Commercial"}
-                      onChange={(e) => setPropertyType(e.target.value)}
-                    />
-                    Commercial
-                  </label>
-                </div>
-              </div>
-
-              {/* Category Selection */}
-              <div className="category-options">
-                <label className="category-option">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Flat/Apartment"
-                    checked={category === "Flat/Apartment"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Flat/Apartment
-                </label>
-                <label className="category-option">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Independent House / Villa"
-                    checked={category === "Independent House / Villa"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Independent House / Villa
-                </label>
-                <label className="category-option">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Builder Floor"
-                    checked={category === "Builder Floor"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Builder Floor
-                </label>
-                <label className="category-option">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="Plot / Land"
-                    checked={category === "Plot / Land"}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  Plot / Land
-                </label>
+                ))}
               </div>
             </div>
 
-            {/* Start Now Button */}
+            {/* Category Selection */}
+            <div className="category-section">
+              <div className="category-grid">
+                {categories[propertyType].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`category-button ${category === cat ? "active" : ""}`}
+                    onClick={() => setCategory(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Start Button */}
             <button type="submit" className="btn-start-now">
-              Start now
+              START NOW
             </button>
           </form>
+        </div>
+
+        {/* Benefits Section */}
+        <div className="benefits-footer">
+          <div className="benefit-item">
+            <span className="benefit-icon">✓</span>
+            <span>Post Property for FREE</span>
+          </div>
+          <div className="benefit-item">
+            <span className="benefit-icon">✓</span>
+            <span>Get Genuine Enquiries</span>
+          </div>
+          <div className="benefit-item">
+            <span className="benefit-icon">✓</span>
+            <span>24/7 Support</span>
+          </div>
         </div>
       </div>
 
@@ -193,9 +161,17 @@ const PropertyListingForm = ({ onSubmit }) => {
       {showUserTypeModal && (
         <div className="modal-overlay">
           <div className="modal-content user-type-modal">
+            <button
+              className="modal-close"
+              onClick={() => setShowUserTypeModal(false)}
+              title="Close"
+            >
+              ✕
+            </button>
+
             <div className="modal-header">
               <h3>Are you an Owner or Broker?</h3>
-              <p className="modal-description">Please select your role to continue</p>
+              <p className="modal-description">Select your role to continue</p>
             </div>
 
             <div className="modal-body">
@@ -221,17 +197,11 @@ const PropertyListingForm = ({ onSubmit }) => {
                 </div>
               </button>
             </div>
-
-            <button
-              className="modal-close"
-              onClick={() => setShowUserTypeModal(false)}
-            >
-              ✕
-            </button>
           </div>
         </div>
       )}
     </div>
   );
-}
+};
+
 export default PropertyListingForm;
