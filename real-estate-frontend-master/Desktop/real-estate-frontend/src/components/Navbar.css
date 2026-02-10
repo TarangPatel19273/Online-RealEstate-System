@@ -175,6 +175,19 @@
   color: #ef4444;
 }
 
+/* Wishlist Button */
+.wishlist-item {
+  color: #e74c3c !important;
+  font-weight: 600 !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wishlist-item:hover {
+  color: #c0392b !important;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .navbar-links {
