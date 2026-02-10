@@ -43,6 +43,11 @@ function Navbar() {
           <div className="nav-item" onClick={() => navigate("/?type=Rent")}>Rent</div>
           <div className="nav-item" onClick={() => navigate("/sell-property")}>Sell</div>
           <div className="nav-item" onClick={() => navigate("/my-properties")}>My Dashboard</div>
+          {isAuthenticated && (
+            <div className="nav-item wishlist-item" onClick={() => navigate("/wishlist")}>
+              <span style={{ fontSize: "18px" }}>♥️</span> <span style={{ color: "lightblack" }}>Wishlist</span>
+            </div>
+          )}
         </div>
 
         {/* Right Actions */}
