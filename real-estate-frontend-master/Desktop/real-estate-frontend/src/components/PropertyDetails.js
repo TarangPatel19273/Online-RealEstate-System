@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar";
+import wishlistService from "../services/wishlistService";
 
 const PropertyDetails = () => {
     const { id } = useParams();
@@ -12,6 +13,8 @@ const PropertyDetails = () => {
     const [isOwner, setIsOwner] = useState(false);
     const [showContact, setShowContact] = useState(false);
     const [activeTab, setActiveTab] = useState("Overview");
+    const [isInWishlist, setIsInWishlist] = useState(false);
+    const [wishlistLoading, setWishlistLoading] = useState(false);
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -70,6 +73,55 @@ const PropertyDetails = () => {
         checkOwnership();
     }, [property]);
 
+    useEffect(() => {
+        // Check if property is in user's wishlist
+        const checkWishlist = async () => {
+            const token = localStorage.getItem("token");
+            if (!token || !property) return;
+
+            try {
+                setWishlistLoading(true);
+                const response = await wishlistService.checkWishlist(property.id);
+                setIsInWishlist(response.data);
+            } catch (err) {
+                console.error("Error checking wishlist:", err);
+                setIsInWishlist(false);
+            } finally {
+                setWishlistLoading(false);
+            }
+        };
+
+        checkWishlist();
+    }, [property]);
+
+    const handleWishlistToggle = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Please login to add items to wishlist");
+            return;
+        }
+
+        try {
+            setWishlistLoading(true);
+            if (isInWishlist) {
+                await wishlistService.removeFromWishlist(property.id);
+                setIsInWishlist(false);
+            } else {
+                await wishlistService.addToWishlist(property.id);
+                setIsInWishlist(true);
+            }
+        } catch (err) {
+            console.error("Error toggling wishlist:", err);
+            if (err.response?.status === 400) {
+                alert("Property already in wishlist");
+            } else {
+                alert("Error updating wishlist");
+            }
+        } finally {
+            setWishlistLoading(false);
+        }
+    };
+
 
     if (loading) return <div style={{ textAlign: "center", marginTop: "50px" }}>Loading...</div>;
     if (!property) return <div style={{ textAlign: "center", marginTop: "50px" }}>Property not found</div>;
@@ -96,9 +148,21 @@ const PropertyDetails = () => {
                         </div>
                         <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
                             <button 
-                                style={{ padding: "8px 16px", border: "2px solid #e0e0e0", background: "white", borderRadius: "6px", cursor: "pointer", fontSize: "24px" }}
+                                onClick={handleWishlistToggle}
+                                disabled={wishlistLoading}
+                                style={{ 
+                                    padding: "8px 16px", 
+                                    border: "2px solid #e0e0e0", 
+                                    background: isInWishlist ? "#ffe0e0" : "white", 
+                                    borderRadius: "6px", 
+                                    cursor: wishlistLoading ? "not-allowed" : "pointer", 
+                                    fontSize: "24px",
+                                    color: isInWishlist ? "#e74c3c" : "#999",
+                                    transition: "all 0.3s ease"
+                                }}
+                                title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
                             >
-                                ♡
+                                {isInWishlist ? "♥" : "♡"}
                             </button>
                             {!isOwner && (
                                 <button
