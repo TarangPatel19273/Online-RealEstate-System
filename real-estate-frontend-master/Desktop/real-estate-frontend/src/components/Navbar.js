@@ -61,7 +61,12 @@ function Navbar() {
           {/* User Profile / Login */}
           {isAuthenticated ? (
             <div className="user-menu">
-              <div className="user-icon-circle">
+              <div 
+                className="user-icon-circle"
+                onClick={() => navigate("/profile")}
+                style={{ cursor: "pointer" }}
+                title="Click to view profile"
+              >
                 {user ? user.username?.charAt(0).toUpperCase() : "U"}
               </div>
               <button className="btn-logout" onClick={handleLogout}>Logout</button>
