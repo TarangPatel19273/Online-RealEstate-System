@@ -7,6 +7,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import SellProperty from "./pages/SellProperty";
 import MyProperties from "./components/MyProperties";
 import PropertyDetails from "./components/PropertyDetails";
+import Wishlist from "./components/Wishlist";
+import Profile from "./components/Profile";
 
 function App() {
   return (
@@ -46,6 +48,22 @@ function App() {
           element={
             <ProtectedRoute>
               <PropertyDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wishlist"
+          element={
+            <ProtectedRoute>
+              <Wishlist />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />
