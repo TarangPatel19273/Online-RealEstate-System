@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import * as authService from "../services/authService";
 import "./VerifyOtp.css";
 
 function VerifyOtp() {
@@ -66,10 +66,7 @@ function VerifyOtp() {
       setLoading(true);
       setError("");
 
-      await axios.post(
-        "http://localhost:8080/api/auth/verify-otp",
-        { email, otp: otpCode }
-      );
+      await authService.verifyOtp(email, otpCode);
 
       // Navigate to login page after successful verification
       navigate("/login", { state: { message: "Account verified successfully! Please login." } });

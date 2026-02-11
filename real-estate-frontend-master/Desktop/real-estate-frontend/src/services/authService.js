@@ -1,21 +1,15 @@
-import axios from "axios";
-
-const API_URL = "http://localhost:8080/api/auth";
+import axiosInstance from "./axiosConfig";
 
 // Signup → Send OTP
 export const signup = (data) => {
-  return axios.post(`${API_URL}/signup`, data, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  return axiosInstance.post(`/auth/signup`, data);
 };
-// Login → Send OTP
-export const sendOtp = (email) => {
-  return axios.post(`${API_URL}/login`, { email });
+// Login
+export const login = (data) => {
+  return axiosInstance.post(`/auth/login`, data);
 };
 
 // Verify OTP → Get JWT
 export const verifyOtp = (email, otp) => {
-  return axios.post(`${API_URL}/verify-otp`, { email, otp });
+  return axiosInstance.post(`/auth/verify-otp`, { email, otp });
 };

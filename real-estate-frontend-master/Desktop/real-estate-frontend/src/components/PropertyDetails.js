@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import Navbar from "./Navbar";
+import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
 
 const PropertyDetails = () => {
@@ -19,7 +19,7 @@ const PropertyDetails = () => {
     useEffect(() => {
         const fetchProperty = async () => {
             try {
-                const response = await axios.get(`http://localhost:8080/api/properties/${id}`);
+                const response = await propertyService.getPropertyById(id);
                 setProperty(response.data);
 
                 // Check ownership
@@ -147,15 +147,15 @@ const PropertyDetails = () => {
                             <div style={{ fontSize: "20px", color: "#666", fontWeight: "500" }}>{configText}</div>
                         </div>
                         <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-                            <button 
+                            <button
                                 onClick={handleWishlistToggle}
                                 disabled={wishlistLoading}
-                                style={{ 
-                                    padding: "8px 16px", 
-                                    border: "2px solid #e0e0e0", 
-                                    background: isInWishlist ? "#ffe0e0" : "white", 
-                                    borderRadius: "6px", 
-                                    cursor: wishlistLoading ? "not-allowed" : "pointer", 
+                                style={{
+                                    padding: "8px 16px",
+                                    border: "2px solid #e0e0e0",
+                                    background: isInWishlist ? "#ffe0e0" : "white",
+                                    borderRadius: "6px",
+                                    cursor: wishlistLoading ? "not-allowed" : "pointer",
                                     fontSize: "24px",
                                     color: isInWishlist ? "#e74c3c" : "#999",
                                     transition: "all 0.3s ease"
@@ -264,7 +264,7 @@ const PropertyDetails = () => {
 
                     {/* Right Side - Property Details */}
                     <div style={{ flex: "1" }}>
-                        
+
                         {/* Area Section */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
                             <div>
@@ -439,7 +439,7 @@ const PropertyDetails = () => {
                             View All (50)
                         </button>
                     </div>
-                    
+
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "15px" }}>
                         <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
                             <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🏫 Schools</div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import * as authService from "../services/authService";
 import "./Auth.css";
 
 function Login() {
@@ -35,7 +35,7 @@ function Login() {
     try {
       setLoading(true);
       setMessage("");
-      const res = await axios.post("http://localhost:8080/api/auth/login", { usernameOrEmail, password });
+      const res = await authService.login({ usernameOrEmail, password });
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
       navigate("/");

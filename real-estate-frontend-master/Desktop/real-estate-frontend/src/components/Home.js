@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import Navbar from "./Navbar";
+import propertyService from "../services/propertyService";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Home.css";
 
@@ -52,14 +52,9 @@ const Home = () => {
       // filters.type = "Sell"; // Optional: default to sell for commercial? or show all. Let's show all commercial.
     }
 
-    let url = `http://localhost:8080/api/properties/search?`;
-    if (filters.location) url += `location=${encodeURIComponent(filters.location)}&`;
-    if (filters.type) url += `type=${filters.type}&`;
-    if (filters.category) url += `category=${filters.category}`;
+    console.log("Fetching with filters:", filters);
 
-    console.log("Fetching with URL:", url);
-
-    axios.get(url)
+    propertyService.searchProperties(filters)
       .then(res => {
         const data = res.data || [];
         setProperties(data);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import propertyService from "../services/propertyService";
 import Navbar from "../components/Navbar";
 import PropertyListingForm from "../components/PropertyListingForm";
 import PropertyFormStepper from "../components/PropertyFormStepper";
@@ -156,27 +156,9 @@ function SellProperty() {
       }
 
       if (isEditing && editingPropertyId) {
-        await axios.put(
-          `http://localhost:8080/api/properties/${editingPropertyId}`,
-          formDataToSubmit,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        await propertyService.updateProperty(editingPropertyId, formDataToSubmit);
       } else {
-        await axios.post(
-          "http://localhost:8080/api/properties/upload",
-          formDataToSubmit,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        await propertyService.uploadProperty(formDataToSubmit);
       }
 
       setUploadSuccess(true);

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { deleteProperty, updateProperty } from "../services/propertyService";
+import propertyService, { deleteProperty, updateProperty } from "../services/propertyService";
 import Navbar from "./Navbar";
 import { useNavigate } from "react-router-dom";
 
@@ -24,11 +23,7 @@ const MyProperties = () => {
           return;
         }
 
-        const response = await axios.get("http://localhost:8080/api/properties/my-properties", {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const response = await propertyService.getMyProperties();
 
         console.log("My properties data received:", response.data);
         const data = response.data || [];

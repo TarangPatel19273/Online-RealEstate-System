@@ -101,9 +101,8 @@ public class PropertyController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 📁 upload directory - Use parent directory of the project to ensure persistence
-            Path projectDir = Paths.get(System.getProperty("user.dir"));
-            Path uploadPath = projectDir.getParent().resolve("uploads");
+            // 📁 upload directory - Use project directory to ensure persistence
+            Path uploadPath = Paths.get("uploads").toAbsolutePath().normalize();
             String uploadDir = uploadPath.toString() + "/";
             Files.createDirectories(uploadPath);
 
@@ -190,7 +189,8 @@ public class PropertyController {
             dto.setPropertyAge(property.getPropertyAge());
             dto.setAmenities(property.getAmenities());
 
-            // Return whatever image names are stored; let client handle missing ones gracefully
+            // Return whatever image names are stored; let client handle missing ones
+            // gracefully
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
 
@@ -334,8 +334,7 @@ public class PropertyController {
     public ResponseEntity<Resource> serveImage(@PathVariable String filename) {
         try {
             // Use persistent path relative to workspace
-            Path projectDir = Paths.get(System.getProperty("user.dir"));
-            Path uploadPath = projectDir.getParent().resolve("uploads").toAbsolutePath().normalize();
+            Path uploadPath = Paths.get("uploads").toAbsolutePath().normalize();
             Path filePath = uploadPath.resolve(filename).normalize();
 
             logger.info("Serving image file: {} from {}", filename, filePath);
@@ -534,8 +533,7 @@ public class PropertyController {
 
             // Handle image deletions
             if (imagesToDelete != null && !imagesToDelete.isEmpty()) {
-                Path projectDir = Paths.get(System.getProperty("user.dir"));
-                Path uploadPath = projectDir.getParent().resolve("uploads");
+                Path uploadPath = Paths.get("uploads").toAbsolutePath().normalize();
 
                 for (String imageName : imagesToDelete) {
                     if (currentImages.contains(imageName)) {
@@ -556,8 +554,7 @@ public class PropertyController {
             // Handle new images
             if (images != null && !images.isEmpty()) {
                 // 📁 upload directory - persistent
-                Path projectDir = Paths.get(System.getProperty("user.dir"));
-                Path uploadPath = projectDir.getParent().resolve("uploads");
+                Path uploadPath = Paths.get("uploads").toAbsolutePath().normalize();
                 String uploadDir = uploadPath.toString() + "/";
                 Files.createDirectories(uploadPath);
 

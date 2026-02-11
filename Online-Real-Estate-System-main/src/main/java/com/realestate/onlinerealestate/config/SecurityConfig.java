@@ -1,4 +1,5 @@
 package com.realestate.onlinerealestate.config;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -18,24 +19,26 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
-            .authorizeHttpRequests(auth -> auth
-                // ✅ AUTH APIs
-                .requestMatchers("/api/auth/**").permitAll()
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(auth -> auth
+                        // ✅ AUTH APIs
+                        .requestMatchers("/api/auth/**").permitAll()
 
-                // ✅ PROPERTY UPLOAD API
-                .requestMatchers("/api/properties/**").permitAll()
+                        // ✅ PROPERTY UPLOAD API
+                        .requestMatchers("/api/properties/**").permitAll()
 
-                // ✅ STATIC RESOURCES (Images)
-                .requestMatchers("/uploads/**").permitAll()
+                        // ✅ WISHLIST API (Controller handles auth)
+                        .requestMatchers("/api/wishlist/**").permitAll()
 
-                // ✅ OPTIONS (CORS preflight)
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        // ✅ STATIC RESOURCES (Images)
+                        .requestMatchers("/uploads/**").permitAll()
 
-                // 🔒 everything else secured
-                .anyRequest().authenticated()
-            );
+                        // ✅ OPTIONS (CORS preflight)
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 🔒 everything else secured
+                        .anyRequest().authenticated());
 
         return http.build();
     }
@@ -58,4 +61,3 @@ public class SecurityConfig {
         return source;
     }
 }
-

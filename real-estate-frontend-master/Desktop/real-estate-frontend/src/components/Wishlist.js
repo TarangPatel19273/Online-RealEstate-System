@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import wishlistService from "../services/wishlistService";
-import axios from "axios";
+import propertyService from "../services/propertyService";
 
 const Wishlist = () => {
     const navigate = useNavigate();
@@ -11,37 +11,37 @@ const Wishlist = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        const fetchWishlist = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                navigate("/login");
+                return;
+            }
+
+            try {
+                setLoading(true);
+                const response = await wishlistService.getMyWishlist();
+
+                // Fetch full property details for each wishlist item
+                const propertiesPromises = response.data.map(item =>
+                    propertyService.getPropertyById(item.propertyId)
+                );
+
+                const propertiesResponses = await Promise.all(propertiesPromises);
+                const properties = propertiesResponses.map(res => res.data);
+
+                setWishlistItems(properties);
+                setError(null);
+            } catch (err) {
+                console.error("Error fetching wishlist:", err);
+                setError("Failed to load wishlist");
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchWishlist();
-    }, []);
-
-    const fetchWishlist = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            navigate("/login");
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const response = await wishlistService.getMyWishlist();
-            
-            // Fetch full property details for each wishlist item
-            const propertiesPromises = response.data.map(item => 
-                axios.get(`http://localhost:8080/api/properties/${item.propertyId}`)
-            );
-            
-            const propertiesResponses = await Promise.all(propertiesPromises);
-            const properties = propertiesResponses.map(res => res.data);
-            
-            setWishlistItems(properties);
-            setError(null);
-        } catch (err) {
-            console.error("Error fetching wishlist:", err);
-            setError("Failed to load wishlist");
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [navigate]);
 
     const handleRemoveFromWishlist = async (propertyId) => {
         try {
@@ -71,22 +71,22 @@ const Wishlist = () => {
     return (
         <div>
             <Navbar />
-            <div style={{ 
-                maxWidth: "1400px", 
-                margin: "0 auto", 
+            <div style={{
+                maxWidth: "1400px",
+                margin: "0 auto",
                 padding: "30px 40px",
-                fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" 
+                fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
             }}>
                 {/* Header */}
                 <div style={{ marginBottom: "30px" }}>
-                    <h1 style={{ 
-                        fontSize: "32px", 
-                        fontWeight: "700", 
+                    <h1 style={{
+                        fontSize: "32px",
+                        fontWeight: "700",
                         color: "#333",
                         marginBottom: "10px"
                     }}>
                         ♥️ My Wishlist
-                    </h1>   
+                    </h1>
                     <p style={{ fontSize: "16px", color: "#666" }}>
                         {wishlistItems.length} {wishlistItems.length === 1 ? 'property' : 'properties'} saved
                     </p>
@@ -203,7 +203,7 @@ const Wishlist = () => {
                                     </button>
 
                                     {/* Property Image */}
-                                    <div 
+                                    <div
                                         onClick={() => handleViewDetails(property.id)}
                                         style={{
                                             height: "200px",
@@ -226,7 +226,7 @@ const Wishlist = () => {
                                     </div>
 
                                     {/* Property Details */}
-                                    <div 
+                                    <div
                                         onClick={() => handleViewDetails(property.id)}
                                         style={{ padding: "15px" }}
                                     >

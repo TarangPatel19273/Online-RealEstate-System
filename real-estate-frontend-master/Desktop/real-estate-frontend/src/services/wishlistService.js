@@ -1,59 +1,24 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:8080/api/wishlist';
+import axiosInstance from './axiosConfig';
 
 const wishlistService = {
   // Add property to wishlist
   addToWishlist: (propertyId) => {
-    const token = localStorage.getItem('token');
-    return axios.post(
-      `${API_URL}/add/${propertyId}`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    return axiosInstance.post(`/wishlist/add/${propertyId}`);
   },
 
   // Remove property from wishlist
   removeFromWishlist: (propertyId) => {
-    const token = localStorage.getItem('token');
-    return axios.delete(
-      `${API_URL}/remove/${propertyId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    return axiosInstance.delete(`/wishlist/remove/${propertyId}`);
   },
 
   // Check if property is in wishlist
   checkWishlist: (propertyId) => {
-    const token = localStorage.getItem('token');
-    return axios.get(
-      `${API_URL}/check/${propertyId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    return axiosInstance.get(`/wishlist/check/${propertyId}`);
   },
 
   // Get all wishlist items
   getMyWishlist: () => {
-    const token = localStorage.getItem('token');
-    return axios.get(
-      `${API_URL}/my-wishlist`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
+    return axiosInstance.get(`/wishlist/my-wishlist`);
   }
 };
 
