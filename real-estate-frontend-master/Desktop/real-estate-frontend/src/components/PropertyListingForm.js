@@ -27,7 +27,6 @@ const PropertyListingForm = ({ onSubmit }) => {
   };
 
   const handleUserTypeSelection = (type) => {
-    setUserType(type);
     onSubmit({
       listingType,
       propertyType,
@@ -80,13 +79,12 @@ const PropertyListingForm = ({ onSubmit }) => {
                   <button
                     key={type}
                     type="button"
-                    className={`option-button ${
-                      (type === "Sell" && listingType === "Sell") ||
+                    className={`option-button ${(type === "Sell" && listingType === "Sell") ||
                       (type === "Rent / Lease" && listingType === "Rent") ||
                       (type === "PG" && listingType === "PG")
-                        ? "active"
-                        : ""
-                    }`}
+                      ? "active"
+                      : ""
+                      }`}
                     onClick={() => setListingType(type === "Rent / Lease" ? "Rent" : type)}
                   >
                     {type}
@@ -94,6 +92,7 @@ const PropertyListingForm = ({ onSubmit }) => {
                 ))}
               </div>
             </div>
+
 
             {/* Property Type Section */}
             <div className="form-section-box">
@@ -117,19 +116,26 @@ const PropertyListingForm = ({ onSubmit }) => {
               </div>
             </div>
 
-            {/* Category Selection */}
-            <div className="category-section">
-              <div className="category-grid">
-                {categories[propertyType].map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={`category-button ${category === cat ? "active" : ""}`}
-                    onClick={() => setCategory(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
+            {/* Property Type Selection */}
+            <div className="form-group">
+              <label className="form-label">And it's a ...</label>
+
+
+
+              {/* Category Selection */}
+              <div className="category-section">
+                <div className="category-grid">
+                  {categories[propertyType].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      className={`category-button ${category === cat ? "active" : ""}`}
+                      onClick={() => setCategory(cat)}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -141,7 +147,7 @@ const PropertyListingForm = ({ onSubmit }) => {
         </div>
 
         {/* Benefits Section */}
-        <div className="benefits-footer">
+        < div className="benefits-footer" >
           <div className="benefit-item">
             <span className="benefit-icon">✓</span>
             <span>Post Property for FREE</span>
@@ -158,49 +164,51 @@ const PropertyListingForm = ({ onSubmit }) => {
       </div>
 
       {/* User Type Modal */}
-      {showUserTypeModal && (
-        <div className="modal-overlay">
-          <div className="modal-content user-type-modal">
-            <button
-              className="modal-close"
-              onClick={() => setShowUserTypeModal(false)}
-              title="Close"
-            >
-              ✕
-            </button>
-
-            <div className="modal-header">
-              <h3>Are you an Owner or Broker?</h3>
-              <p className="modal-description">Select your role to continue</p>
-            </div>
-
-            <div className="modal-body">
+      {
+        showUserTypeModal && (
+          <div className="modal-overlay">
+            <div className="modal-content user-type-modal">
               <button
-                className="user-type-button owner"
-                onClick={() => handleUserTypeSelection("Owner")}
+                className="modal-close"
+                onClick={() => setShowUserTypeModal(false)}
+                title="Close"
               >
-                <div className="user-type-icon">👤</div>
-                <div className="user-type-text">
-                  <div className="user-type-title">Owner</div>
-                  <div className="user-type-subtitle">I own the property</div>
-                </div>
+                ✕
               </button>
 
-              <button
-                className="user-type-button broker"
-                onClick={() => handleUserTypeSelection("Broker")}
-              >
-                <div className="user-type-icon">💼</div>
-                <div className="user-type-text">
-                  <div className="user-type-title">Broker</div>
-                  <div className="user-type-subtitle">I represent the property</div>
-                </div>
-              </button>
+              <div className="modal-header">
+                <h3>Are you an Owner or Broker?</h3>
+                <p className="modal-description">Select your role to continue</p>
+              </div>
+
+              <div className="modal-body">
+                <button
+                  className="user-type-button owner"
+                  onClick={() => handleUserTypeSelection("Owner")}
+                >
+                  <div className="user-type-icon">👤</div>
+                  <div className="user-type-text">
+                    <div className="user-type-title">Owner</div>
+                    <div className="user-type-subtitle">I own the property</div>
+                  </div>
+                </button>
+
+                <button
+                  className="user-type-button broker"
+                  onClick={() => handleUserTypeSelection("Broker")}
+                >
+                  <div className="user-type-icon">💼</div>
+                  <div className="user-type-text">
+                    <div className="user-type-title">Broker</div>
+                    <div className="user-type-subtitle">I represent the property</div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

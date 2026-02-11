@@ -203,9 +203,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
     onComplete(formState);
   };
 
-  const getUserIcon = () => {
-    return formState.userType === "Owner" ? "👤" : "💼";
-  };
+
 
   return (
     <div className="property-form-stepper-container">
@@ -264,7 +262,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
 
             <div className="form-section">
               <label className="form-label">What kind of property do you have?</label>
-              
+
               <div className="property-type-selector">
                 <label className="radio-label">
                   <input
@@ -306,7 +304,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
           <div className="step-content-area">
             <div className="form-section">
               <label className="form-label">Location Details</label>
-              
+
               <div className="form-group">
                 <label>City</label>
                 <input
@@ -359,7 +357,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
           <div className="step-content-area">
             <div className="form-section">
               <label className="form-label">Property Profile</label>
-              
+
               <div className="form-row">
                 <div className="form-group">
                   <label>Title</label>
@@ -528,7 +526,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                   </div>
                 </div>
               )}
-              
+
               <div className="upload-area">
                 <label className="file-input-label">
                   <div className="upload-icon">🖼️</div>
@@ -562,7 +560,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
           <div className="step-content-area">
             <div className="form-section">
               <label className="form-label">Select Amenities</label>
-              
+
               <div className="amenities-grid">
                 {amenitiesList.map(amenity => (
                   <label key={amenity} className="amenity-checkbox">
@@ -602,13 +600,13 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
               ← Previous
             </button>
           )}
-          
+
           {currentStep < steps.length && (
             <button className="btn-continue" onClick={handleNext}>
               Continue →
             </button>
           )}
-          
+
           {currentStep === steps.length && (
             <button className="btn-finish" onClick={handleFinish}>
               {editMode ? "Update Listing" : "Publish Listing"}

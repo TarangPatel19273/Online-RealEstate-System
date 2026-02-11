@@ -6,6 +6,63 @@ import PropertyFormStepper from "../components/PropertyFormStepper";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./SellProperty.css";
 
+const normalizeAmenities = (amenities) => {
+  if (Array.isArray(amenities)) return amenities;
+  if (typeof amenities === "string") {
+    try {
+      const parsed = JSON.parse(amenities);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  return [];
+};
+
+const resolveCategory = (value) => {
+  const allowed = [
+    "Flat/Apartment",
+    "Independent House / Villa",
+    "Builder Floor",
+    "Plot / Land",
+    "1 RK/Studio Apartment",
+    "Serviced Apartment",
+    "Farmhouse",
+    "Other"
+  ];
+  return allowed.includes(value) ? value : "Flat/Apartment";
+};
+
+const mapEditPropertyToFormData = (property) => {
+  const propertyType = property.category === "Commercial" ? "Commercial" : "Residential";
+  return {
+    propertyId: property.id,
+    listingType: property.type || "Sell",
+    propertyType,
+    category: resolveCategory(property.category),
+    userType: property.userType || "Owner",
+    title: property.title || "",
+    location: property.location || "",
+    address: property.address || "",
+    city: property.city || "",
+    state: property.state || "",
+    pincode: property.pincode || "",
+    bedrooms: property.bedrooms || "",
+    bathrooms: property.bathrooms || "",
+    balconies: property.balconies || "",
+    area: property.area || "",
+    carpetArea: property.carpetArea || "",
+    floorNumber: property.floorNumber || "",
+    totalFloors: property.totalFloors || "",
+    propertyAge: property.propertyAge || "",
+    description: property.description || "",
+    amenities: normalizeAmenities(property.amenities),
+    contactNumber: property.contactNumber || "",
+    existingImages: property.imageUrls || [],
+    imagesToDelete: []
+  };
+};
+
 function SellProperty() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,63 +74,6 @@ function SellProperty() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingPropertyId, setEditingPropertyId] = useState(null);
-
-  const normalizeAmenities = (amenities) => {
-    if (Array.isArray(amenities)) return amenities;
-    if (typeof amenities === "string") {
-      try {
-        const parsed = JSON.parse(amenities);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  };
-
-  const resolveCategory = (value) => {
-    const allowed = [
-      "Flat/Apartment",
-      "Independent House / Villa",
-      "Builder Floor",
-      "Plot / Land",
-      "1 RK/Studio Apartment",
-      "Serviced Apartment",
-      "Farmhouse",
-      "Other"
-    ];
-    return allowed.includes(value) ? value : "Flat/Apartment";
-  };
-
-  const mapEditPropertyToFormData = (property) => {
-    const propertyType = property.category === "Commercial" ? "Commercial" : "Residential";
-    return {
-      propertyId: property.id,
-      listingType: property.type || "Sell",
-      propertyType,
-      category: resolveCategory(property.category),
-      userType: property.userType || "Owner",
-      title: property.title || "",
-      location: property.location || "",
-      address: property.address || "",
-      city: property.city || "",
-      state: property.state || "",
-      pincode: property.pincode || "",
-      bedrooms: property.bedrooms || "",
-      bathrooms: property.bathrooms || "",
-      balconies: property.balconies || "",
-      area: property.area || "",
-      carpetArea: property.carpetArea || "",
-      floorNumber: property.floorNumber || "",
-      totalFloors: property.totalFloors || "",
-      propertyAge: property.propertyAge || "",
-      description: property.description || "",
-      amenities: normalizeAmenities(property.amenities),
-      contactNumber: property.contactNumber || "",
-      existingImages: property.imageUrls || [],
-      imagesToDelete: []
-    };
-  };
 
   useEffect(() => {
     const editProperty = location.state?.editProperty;
