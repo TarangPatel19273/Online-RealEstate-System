@@ -78,6 +78,8 @@ public class PropertyController {
             @RequestParam(required = false) Integer totalFloors,
             @RequestParam(required = false) String propertyAge,
             @RequestParam(required = false) List<String> amenities,
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
             @RequestParam("images") List<MultipartFile> images,
             @RequestHeader("Authorization") String authHeader) {
 
@@ -128,6 +130,8 @@ public class PropertyController {
             property.setTotalFloors(totalFloors);
             property.setPropertyAge(propertyAge);
             property.setAmenities(amenities);
+            property.setLatitude(latitude);
+            property.setLongitude(longitude);
             property.setCreatedAt(LocalDateTime.now());
             property.setUser(user);
             property.setSellerEmail(user.getEmail());
@@ -188,6 +192,8 @@ public class PropertyController {
             dto.setTotalFloors(property.getTotalFloors());
             dto.setPropertyAge(property.getPropertyAge());
             dto.setAmenities(property.getAmenities());
+            dto.setLatitude(property.getLatitude());
+            dto.setLongitude(property.getLongitude());
 
             // Return whatever image names are stored; let client handle missing ones
             // gracefully
@@ -238,6 +244,8 @@ public class PropertyController {
             dto.setTotalFloors(property.getTotalFloors());
             dto.setPropertyAge(property.getPropertyAge());
             dto.setAmenities(property.getAmenities());
+            dto.setLatitude(property.getLatitude());
+            dto.setLongitude(property.getLongitude());
             dto.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
 
             if (property.getUser() != null) {
@@ -286,6 +294,58 @@ public class PropertyController {
                 properties = propertyRepository.findAll();
             }
         }
+
+        List<PropertyResponse> response = properties.stream().map(property -> {
+            PropertyResponse dto = new PropertyResponse();
+            dto.setId(property.getId());
+            dto.setTitle(property.getTitle());
+            dto.setPrice(property.getPrice());
+            dto.setLocation(property.getLocation());
+            dto.setAddress(property.getAddress());
+            dto.setCity(property.getCity());
+            dto.setState(property.getState());
+            dto.setPincode(property.getPincode());
+            dto.setDescription(property.getDescription());
+            dto.setType(property.getType());
+            dto.setCategory(property.getCategory());
+            dto.setUserType(property.getUserType());
+            dto.setContactNumber(property.getContactNumber());
+            dto.setBedrooms(property.getBedrooms());
+            dto.setBathrooms(property.getBathrooms());
+            dto.setBalconies(property.getBalconies());
+            dto.setArea(property.getArea());
+            dto.setCarpetArea(property.getCarpetArea());
+            dto.setFloorNumber(property.getFloorNumber());
+            dto.setTotalFloors(property.getTotalFloors());
+            dto.setPropertyAge(property.getPropertyAge());
+            dto.setAmenities(property.getAmenities());
+
+            List<String> imageNames = property.getImageNames();
+            dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
+
+            if (property.getUser() != null) {
+                dto.setUserId(property.getUser().getId());
+                dto.setSellerEmail(property.getUser().getEmail());
+                dto.setSellerUsername(property.getUser().getUsername());
+            }
+
+            return dto;
+        }).toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ==========================
+    // COMPARE PROPERTIES
+    // ==========================
+    // ==========================
+    // COMPARE PROPERTIES
+    // ==========================
+    @GetMapping("/compare")
+    public ResponseEntity<List<PropertyResponse>> compareProperties(@RequestParam List<Long> ids) {
+        logger.info("Received compare request for IDs: {}", ids);
+        List<Property> properties = propertyRepository.findAllById(ids);
+        logger.info("Found {} properties for comparison", properties.size());
 
         List<PropertyResponse> response = properties.stream().map(property -> {
             PropertyResponse dto = new PropertyResponse();

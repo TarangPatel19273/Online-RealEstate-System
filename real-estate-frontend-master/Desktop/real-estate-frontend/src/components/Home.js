@@ -13,6 +13,29 @@ const Home = () => {
 
   const [activeTab, setActiveTab] = useState("Buy");
   const [currentUser, setCurrentUser] = useState(null);
+  const [selectedProperties, setSelectedProperties] = useState([]);
+
+  // Comparison Logic
+  const handlePropertySelect = (propertyId) => {
+    setSelectedProperties(prev => {
+      if (prev.includes(propertyId)) {
+        return prev.filter(id => id !== propertyId);
+      }
+      if (prev.length >= 3) {
+        alert("You can only compare up to 3 properties!");
+        return prev;
+      }
+      return [...prev, propertyId];
+    });
+  };
+
+  const handleCompare = () => {
+    if (selectedProperties.length < 2) {
+      alert("Please select at least 2 properties to compare.");
+      return;
+    }
+    navigate(`/compare?ids=${selectedProperties.join(",")}`);
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -170,8 +193,24 @@ const Home = () => {
                 currentUser.id === property.userId
               );
 
+
+              const isSelected = selectedProperties.includes(property.id);
+
               return (
                 <div key={property.id} className="property-card" onClick={() => navigate(`/property/${property.id}`)}>
+                  {/* Compare Checkbox */}
+                  <div className="compare-checkbox-wrapper" onClick={(e) => {
+                    e.stopPropagation();
+                    handlePropertySelect(property.id);
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => { }} // Handled by wrapper click
+                      className="compare-checkbox"
+                    />
+                    <span className="compare-label">Compare</span>
+                  </div>
                   {/* IMAGE CAROUSEL */}
                   <div className="card-image-wrapper">
                     {hasImages ? (
@@ -252,6 +291,18 @@ const Home = () => {
           </div>
         )}
       </div>
+
+      {/* Compare Floating Button */}
+      {selectedProperties.length > 0 && (
+        <div className="compare-floating-bar">
+          <div className="compare-count">
+            {selectedProperties.length} property{selectedProperties.length > 1 ? "ies" : ""} selected
+          </div>
+          <button className="btn-compare-action" onClick={handleCompare}>
+            Compare Now
+          </button>
+        </div>
+      )}
     </div>
   );
 };

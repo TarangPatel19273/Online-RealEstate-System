@@ -20,7 +20,7 @@ public class PropertyResponse {
 	private String sellerEmail;
 	private String sellerUsername;
 	private List<String> imageUrls;
-	
+
 	// Property Details
 	private Integer bedrooms;
 	private Integer bathrooms;
@@ -31,8 +31,26 @@ public class PropertyResponse {
 	private Integer totalFloors;
 	private String propertyAge;
 	private List<String> amenities;
-	
+
 	private Long userId;
+	private Double latitude;
+	private Double longitude;
+
+	public Double getLatitude() {
+		return latitude;
+	}
+
+	public void setLatitude(Double latitude) {
+		this.latitude = latitude;
+	}
+
+	public Double getLongitude() {
+		return longitude;
+	}
+
+	public void setLongitude(Double longitude) {
+		this.longitude = longitude;
+	}
 
 	public Long getId() {
 		return id;

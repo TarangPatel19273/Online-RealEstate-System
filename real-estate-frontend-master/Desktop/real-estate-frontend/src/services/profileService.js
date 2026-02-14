@@ -1,63 +1,36 @@
-const API_URL = "http://localhost:8080/api/user";
+import axiosInstance from "./axiosConfig";
 
 export const profileService = {
   // Get current user profile
-  getProfile: async (token) => {
+  getProfile: async () => {
     try {
-      const response = await fetch(`${API_URL}/profile`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch profile");
-      }
-      return await response.json();
+      const response = await axiosInstance.get("/user/profile");
+      return response.data;
     } catch (error) {
       console.error("Error fetching profile:", error);
-      throw error;
+      throw error.response?.data || error.message;
     }
   },
 
   // Update user profile
-  updateProfile: async (token, profileData) => {
+  updateProfile: async (profileData) => {
     try {
-      const response = await fetch(`${API_URL}/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(profileData),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to update profile");
-      }
-      return await response.json();
+      const response = await axiosInstance.put("/user/profile", profileData);
+      return response.data;
     } catch (error) {
       console.error("Error updating profile:", error);
-      throw error;
+      throw error.response?.data || error.message;
     }
   },
 
   // Get user profile by ID
   getUserProfileById: async (userId) => {
     try {
-      const response = await fetch(`${API_URL}/profile/${userId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch user profile");
-      }
-      return await response.json();
+      const response = await axiosInstance.get(`/user/profile/${userId}`);
+      return response.data;
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      throw error;
+      throw error.response?.data || error.message;
     }
   },
 };

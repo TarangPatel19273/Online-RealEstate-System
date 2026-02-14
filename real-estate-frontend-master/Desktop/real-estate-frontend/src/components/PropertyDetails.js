@@ -1,8 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import Navbar from "./Navbar";
 import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
+import EMICalculator from "./EMICalculator";
+import "./PropertyDetails.css";
+
+// Fix for default marker icon in Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+    iconUrl: require("leaflet/dist/images/marker-icon.png"),
+    shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+});
 
 const PropertyDetails = () => {
     const { id } = useParams();
@@ -350,6 +363,11 @@ const PropertyDetails = () => {
                             </div>
                         )}
 
+                        {/* EMI Calculator */}
+                        <div style={{ marginBottom: "25px" }}>
+                            <EMICalculator propertyPrice={property.price} />
+                        </div>
+
                         {/* Amenities */}
                         {property.amenities && property.amenities.length > 0 && (
                             <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "25px" }}>
@@ -457,6 +475,62 @@ const PropertyDetails = () => {
                             <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🚇 Transport</div>
                             <div style={{ fontSize: "14px", color: "#666" }}>Public transport accessible</div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Map Section - Always Show */}
+                <div style={{ padding: "30px 40px", background: "white", marginTop: "30px" }}>
+                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "20px", color: "#333" }}>Location Map</h2>
+                    <div style={{ height: "400px", borderRadius: "12px", overflow: "hidden", border: "1px solid #e0e0e0", position: "relative" }}>
+                        {property.latitude && property.longitude ? (
+                            <MapContainer
+                                center={[parseFloat(property.latitude), parseFloat(property.longitude)]}
+                                zoom={15}
+                                style={{ height: "100%", width: "100%" }}
+                            >
+                                <TileLayer
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                />
+                                <Marker position={[parseFloat(property.latitude), parseFloat(property.longitude)]}>
+                                    <Popup>
+                                        {property.title} <br /> {property.location}
+                                    </Popup>
+                                </Marker>
+                            </MapContainer>
+                        ) : (
+                            <div style={{
+                                height: "100%",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "#f8f9fa",
+                                color: "#666"
+                            }}>
+                                <div style={{ fontSize: "48px", marginBottom: "15px" }}>🗺️</div>
+                                <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "10px" }}>Exact location not available</h3>
+                                <p style={{ marginBottom: "20px" }}>The owner hasn't provided precise map coordinates.</p>
+                                <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address || ''}, ${property.city || ''}, ${property.state || ''}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        padding: "10px 20px",
+                                        background: "#0078db",
+                                        color: "white",
+                                        textDecoration: "none",
+                                        borderRadius: "6px",
+                                        fontWeight: "600",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "8px"
+                                    }}
+                                >
+                                    View on Google Maps ↗
+                                </a>
+                            </div>
+                        )}
                     </div>
                 </div>
 

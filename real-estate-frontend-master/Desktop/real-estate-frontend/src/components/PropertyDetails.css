@@ -1,0 +1,23 @@
+.property-details-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #fff;
+}
+
+.map-container {
+    height: 400px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    z-index: 1;
+    /* Ensure map stays below navbar if needed */
+}
+
+/* Leaflet map fix for some z-index issues */
+.leaflet-container {
+    height: 100%;
+    width: 100%;
+}

@@ -128,14 +128,21 @@ function SellProperty() {
       formDataToSubmit.append("type", completedFormData.listingType || "Sell");
       formDataToSubmit.append("category", completedFormData.category || "Residential");
       formDataToSubmit.append("userType", completedFormData.userType || "Owner");
-      formDataToSubmit.append("bedrooms", completedFormData.bedrooms || "");
-      formDataToSubmit.append("bathrooms", completedFormData.bathrooms || "");
-      formDataToSubmit.append("balconies", completedFormData.balconies || "");
-      formDataToSubmit.append("area", completedFormData.area || "");
-      formDataToSubmit.append("carpetArea", completedFormData.carpetArea || "");
-      formDataToSubmit.append("floorNumber", completedFormData.floorNumber || "");
-      formDataToSubmit.append("totalFloors", completedFormData.totalFloors || "");
-      formDataToSubmit.append("propertyAge", completedFormData.propertyAge || "");
+      if (completedFormData.bedrooms) formDataToSubmit.append("bedrooms", completedFormData.bedrooms);
+      if (completedFormData.bathrooms) formDataToSubmit.append("bathrooms", completedFormData.bathrooms);
+      if (completedFormData.balconies) formDataToSubmit.append("balconies", completedFormData.balconies);
+      if (completedFormData.area) formDataToSubmit.append("area", completedFormData.area);
+      if (completedFormData.carpetArea) formDataToSubmit.append("carpetArea", completedFormData.carpetArea);
+      if (completedFormData.floorNumber) formDataToSubmit.append("floorNumber", completedFormData.floorNumber);
+      if (completedFormData.totalFloors) formDataToSubmit.append("totalFloors", completedFormData.totalFloors);
+      if (completedFormData.propertyAge) formDataToSubmit.append("propertyAge", completedFormData.propertyAge);
+
+      if (completedFormData.latitude) {
+        formDataToSubmit.append("latitude", completedFormData.latitude);
+      }
+      if (completedFormData.longitude) {
+        formDataToSubmit.append("longitude", completedFormData.longitude);
+      }
 
       if (completedFormData.amenities && completedFormData.amenities.length > 0) {
         completedFormData.amenities.forEach((amenity) => {

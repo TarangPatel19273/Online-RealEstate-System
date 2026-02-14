@@ -48,6 +48,9 @@ const propertyService = {
   searchProperties: (queryParams) => {
     return axiosInstance.get('/properties/search', { params: queryParams });
   },
+  compareProperties: (ids) => {
+    return axiosInstance.get('/properties/compare', { params: { ids: ids.join(",") } });
+  }
 };
 
 export default propertyService;

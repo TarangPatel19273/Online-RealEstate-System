@@ -6,7 +6,7 @@ const PropertyListingForm = ({ onSubmit }) => {
   const [propertyType, setPropertyType] = useState("Residential");
   const [category, setCategory] = useState("Flat/Apartment");
   const [showUserTypeModal, setShowUserTypeModal] = useState(false);
-  const [userType, setUserType] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [userName, setUserName] = useState("User");
 
   useEffect(() => {

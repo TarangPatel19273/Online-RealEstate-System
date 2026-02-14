@@ -7,6 +7,8 @@ function Navbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -42,34 +44,54 @@ function Navbar() {
           <div className="nav-item" onClick={() => navigate("/?type=Buy")}>Buy</div>
           <div className="nav-item" onClick={() => navigate("/?type=Rent")}>Rent</div>
           <div className="nav-item" onClick={() => navigate("/sell-property")}>Sell</div>
-          <div className="nav-item" onClick={() => navigate("/my-properties")}>My Dashboard</div>
-          {isAuthenticated && (
-            <div className="nav-item wishlist-item" onClick={() => navigate("/wishlist")}>
-              <span style={{ fontSize: "18px" }}>♥️</span> <span style={{ color: "lightblack" }}>Wishlist</span>
-            </div>
-          )}
         </div>
 
         {/* Right Actions */}
         <div className="navbar-actions">
           {/* Post Property CTA */}
-          <button className="btn-post-property" onClick={() => navigate("/sell-property")}>
-            Post Property
-            <span className="badge-free">FREE</span>
-          </button>
+          {!isAuthenticated && (
+            <button className="btn-post-property" onClick={() => navigate("/sell-property")}>
+              Post Property
+              <span className="badge-free">FREE</span>
+            </button>
+          )}
 
           {/* User Profile / Login */}
           {isAuthenticated ? (
-            <div className="user-menu">
-              <div 
+            <div
+              className="user-menu"
+              onMouseEnter={() => setIsDropdownOpen(true)}
+              onMouseLeave={() => setIsDropdownOpen(false)}
+            >
+              <button className="btn-post-property" onClick={() => navigate("/sell-property")} style={{ marginRight: '15px' }}>
+                Post Property
+                <span className="badge-free">FREE</span>
+              </button>
+
+              <div
                 className="user-icon-circle"
                 onClick={() => navigate("/profile")}
-                style={{ cursor: "pointer" }}
-                title="Click to view profile"
               >
                 {user ? user.username?.charAt(0).toUpperCase() : "U"}
               </div>
-              <button className="btn-logout" onClick={handleLogout}>Logout</button>
+
+              {isDropdownOpen && (
+                <div className="dropdown-menu">
+                  <div className="dropdown-item" onClick={() => navigate("/profile")}>
+                    <span>👤</span> My Profile
+                  </div>
+                  <div className="dropdown-item" onClick={() => navigate("/my-properties")}>
+                    <span>📊</span> My Dashboard
+                  </div>
+                  <div className="dropdown-item" onClick={() => navigate("/wishlist")}>
+                    <span>♥️</span> Wishlist
+                  </div>
+                  <div className="dropdown-divider"></div>
+                  <div className="dropdown-item logout-item" onClick={handleLogout}>
+                    <span>🚪</span> Logout
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="auth-links">

@@ -1,0 +1,161 @@
+.compare-page {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+.compare-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.compare-title {
+    font-size: 28px;
+    color: #1e293b;
+    margin-bottom: 30px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.compare-table-wrapper {
+    overflow-x: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 20px;
+}
+
+.compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.compare-table th,
+.compare-table td {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.compare-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.feature-col {
+    width: 15%;
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: #475569;
+    border-right: 1px solid #e2e8f0;
+}
+
+.feature-label {
+    font-weight: 600;
+    color: #64748b;
+    background-color: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+}
+
+.property-col-header {
+    width: 28%;
+    /* Approx for 3 items */
+    vertical-align: top;
+}
+
+.header-image-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.header-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.header-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.4;
+}
+
+.header-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0078db;
+}
+
+.price-cell {
+    font-weight: 700;
+    color: #0078db;
+}
+
+.tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.tag-sell {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.tag-rent {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.description-cell {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.btn-view-details {
+    background-color: #0078db;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.2s;
+}
+
+.btn-view-details:hover {
+    background-color: #005ca8;
+}
+
+.compare-empty {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.btn-back-home {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #0078db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.compare-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 18px;
+    color: #64748b;
+}

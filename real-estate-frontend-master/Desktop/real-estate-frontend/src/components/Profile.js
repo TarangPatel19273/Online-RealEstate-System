@@ -27,10 +27,10 @@ function Profile() {
     try {
       setLoading(true);
       setError(null);
-      const data = await profileService.getProfile(token);
+      const data = await profileService.getProfile();
       setProfile(data);
     } catch (err) {
-      setError("Failed to load profile. Please try again.");
+      setError(err.message || "Failed to load profile. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -67,7 +67,6 @@ function Profile() {
       };
 
       const updatedProfile = await profileService.updateProfile(
-        token,
         updateData
       );
       setProfile(updatedProfile);
@@ -106,7 +105,21 @@ function Profile() {
         <Navbar />
         <div className="profile-page">
           <div className="error-container">
-            <p>Profile not found</p>
+            <h3>{error ? "Error Loading Profile" : "Profile Not Found"}</h3>
+            <p>{error || "We couldn't retrieve your profile information."}</p>
+
+            <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', textAlign: 'left', borderRadius: '5px' }}>
+              <strong>Debug Info:</strong>
+              <pre>Loading: {JSON.stringify(loading)}</pre>
+              <pre>Error: {JSON.stringify(error)}</pre>
+              <pre>Profile: {JSON.stringify(profile)}</pre>
+            </div>
+
+            {error && (
+              <button className="btn-retry" onClick={() => window.location.reload()}>
+                Retry
+              </button>
+            )}
           </div>
         </div>
       </>

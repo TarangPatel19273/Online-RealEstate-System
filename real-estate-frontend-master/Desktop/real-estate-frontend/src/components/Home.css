@@ -150,6 +150,7 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .property-card:hover {
@@ -304,4 +305,85 @@
 .empty-emoji {
   font-size: 48px;
   margin-bottom: 16px;
+}
+
+/* Compare Checkbox on Card */
+.compare-checkbox-wrapper {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 5px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 10;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.compare-checkbox-wrapper:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.compare-checkbox {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.compare-label {
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Floating Compare Bar */
+.compare-floating-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 15px 30px;
+  border-radius: 50px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+.compare-count {
+  font-weight: 600;
+  color: #333;
+}
+
+.btn-compare-action {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-compare-action:hover {
+  background: #0056b3;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }

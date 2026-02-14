@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { getCoordinates } from "../utils/geocode";
 import "./PropertyFormStepper.css";
 
 const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false }) => {
+
   const normalizeAmenities = (amenities) => {
     if (Array.isArray(amenities)) return amenities;
     if (typeof amenities === "string") {
@@ -15,7 +17,9 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
     return [];
   };
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState((!editMode && formData && formData.listingType) ? 2 : 1);
+  // eslint-disable-next-line no-unused-vars
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formState, setFormState] = useState({
     listingType: formData.listingType || "Sell",
     propertyType: formData.propertyType || "Residential",
@@ -147,12 +151,27 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
     if (step === 3) {
       if (!hasValue(formState.title)) return "Please enter a property title.";
       if (!hasValue(formState.price)) return "Please enter the price.";
-      if (!hasValue(formState.bedrooms)) return "Please enter the number of bedrooms.";
-      if (!hasValue(formState.bathrooms)) return "Please enter the number of bathrooms.";
+
+      const isPlot = ["Plot / Land"].includes(formState.category);
+      const isCommercial = formState.propertyType === "Commercial";
+
+      if (!isPlot && !isCommercial) {
+        if (!hasValue(formState.bedrooms)) return "Please enter the number of bedrooms.";
+        if (!hasValue(formState.bathrooms)) return "Please enter the number of bathrooms.";
+      }
+
+      if (!isPlot) {
+        const isVillaOrFarm = ["Independent House / Villa", "Farmhouse"].includes(formState.category);
+
+        if (!isVillaOrFarm) {
+          if (!hasValue(formState.floorNumber)) return "Please enter the floor number.";
+        }
+
+        if (!hasValue(formState.totalFloors)) return "Please enter the total floors.";
+        if (!hasValue(formState.propertyAge)) return "Please enter the property age.";
+      }
+
       if (!hasValue(formState.area)) return "Please enter the built-up area.";
-      if (!hasValue(formState.floorNumber)) return "Please enter the floor number.";
-      if (!hasValue(formState.totalFloors)) return "Please enter the total floors.";
-      if (!hasValue(formState.propertyAge)) return "Please enter the property age.";
       if (!hasValue(formState.description)) return "Please enter the description.";
     }
 
@@ -193,16 +212,51 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     const error = getStepError(currentStep);
     if (error) {
       setStepError(error);
       return;
     }
     setStepError("");
-    onComplete(formState);
-  };
 
+    setIsSubmitting(true);
+    try {
+      // 🟢 Geocoding Logic
+      let lat = null;
+      let lon = null;
+
+      try {
+        const fullAddress = `${formState.address}, ${formState.city}, ${formState.state}`;
+        console.log("Fetching coordinates for:", fullAddress);
+
+        // Add a small delay/debounce if needed, but for now direct call
+        const coords = await getCoordinates(fullAddress);
+
+        if (coords) {
+          lat = coords.lat;
+          lon = coords.lon;
+          console.log("Coordinates found:", lat, lon);
+        } else {
+          console.warn("Geocoding returned null, map will not be available for this property.");
+          // Optional: alert("Could not fetch location coordinates. The map location might not be accurate.");
+        }
+      } catch (geoError) {
+        console.warn("Geocoding failed, proceeding without coordinates:", geoError);
+      }
+
+      onComplete({
+        ...formState,
+        latitude: lat,
+        longitude: lon
+      });
+    } catch (e) {
+      console.error("Error in finish:", e);
+      setStepError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
 
   return (
@@ -363,17 +417,17 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                   <label>Title</label>
                   <input
                     type="text"
-                    placeholder="e.g., 3 BHK Apartment"
+                    placeholder={formState.propertyType === "Commercial" ? "e.g., Office Space in City Center" : "e.g., 3 BHK Apartment"}
                     value={formState.title}
                     onChange={(e) => handleInputChange("title", e.target.value)}
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Price</label>
+                  <label>{["Rent / Lease", "PG"].includes(formState.listingType) ? "Monthly Rent" : "Price"}</label>
                   <input
                     type="number"
-                    placeholder="Enter price"
+                    placeholder={["Rent / Lease", "PG"].includes(formState.listingType) ? "Enter monthly rent" : "Enter price"}
                     value={formState.price}
                     onChange={(e) => handleInputChange("price", e.target.value)}
                     className="form-input"
@@ -381,38 +435,42 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Bedrooms</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={formState.bedrooms}
-                    onChange={(e) => handleInputChange("bedrooms", e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Bathrooms</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={formState.bathrooms}
-                    onChange={(e) => handleInputChange("bathrooms", e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Balconies</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={formState.balconies}
-                    onChange={(e) => handleInputChange("balconies", e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-              </div>
+              {!["Plot / Land"].includes(formState.category) && formState.propertyType !== "Commercial" && (
+                <>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Bedrooms</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={formState.bedrooms}
+                        onChange={(e) => handleInputChange("bedrooms", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Bathrooms</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={formState.bathrooms}
+                        onChange={(e) => handleInputChange("bathrooms", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Balconies</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={formState.balconies}
+                        onChange={(e) => handleInputChange("balconies", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="form-row">
                 <div className="form-group">
@@ -437,38 +495,42 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Floor Number</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., 2nd, 5th, Ground"
-                    value={formState.floorNumber}
-                    onChange={(e) => handleInputChange("floorNumber", e.target.value)}
-                    className="form-input"
-                  />
+              {!["Plot / Land"].includes(formState.category) && (
+                <div className="form-row">
+                  {!["Independent House / Villa", "Farmhouse"].includes(formState.category) && (
+                    <div className="form-group">
+                      <label>Floor Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 2nd, 5th, Ground"
+                        value={formState.floorNumber}
+                        onChange={(e) => handleInputChange("floorNumber", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  )}
+                  <div className="form-group">
+                    <label>Total Floors</label>
+                    <input
+                      type="number"
+                      placeholder="Total floors in building"
+                      value={formState.totalFloors}
+                      onChange={(e) => handleInputChange("totalFloors", e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Property Age</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., 2 years, 5 months old"
+                      value={formState.propertyAge}
+                      onChange={(e) => handleInputChange("propertyAge", e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Total Floors</label>
-                  <input
-                    type="number"
-                    placeholder="Total floors in building"
-                    value={formState.totalFloors}
-                    onChange={(e) => handleInputChange("totalFloors", e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Property Age</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., 2 years, 5 months old"
-                    value={formState.propertyAge}
-                    onChange={(e) => handleInputChange("propertyAge", e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-              </div>
+              )}
 
               <div className="form-group">
                 <label>Description</label>

@@ -9,6 +9,7 @@ import MyProperties from "./components/MyProperties";
 import PropertyDetails from "./components/PropertyDetails";
 import Wishlist from "./components/Wishlist";
 import Profile from "./components/Profile";
+import Compare from "./components/Compare";
 
 function App() {
   return (
@@ -56,6 +57,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Wishlist />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/compare"
+          element={
+            <ProtectedRoute>
+              <Compare />
             </ProtectedRoute>
           }
         />
