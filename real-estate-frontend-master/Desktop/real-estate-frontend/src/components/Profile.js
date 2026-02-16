@@ -55,7 +55,7 @@ function Profile() {
 
     try {
       setSaving(true);
-      const token = localStorage.getItem("token");
+
       const updateData = {
         fullName: profile.fullName,
         mobileNumber: profile.mobileNumber,

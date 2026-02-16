@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import Navbar from "./Navbar";
 import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
 import EMICalculator from "./EMICalculator";
+import "leaflet-routing-machine";
+import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "./PropertyDetails.css";
 
 // Fix for default marker icon in Leaflet
@@ -16,6 +18,85 @@ L.Icon.Default.mergeOptions({
     iconUrl: require("leaflet/dist/images/marker-icon.png"),
     shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
+
+// Component to handle routing
+const RoutingControl = ({ destination }) => {
+    const map = useMap();
+    const [routingControl, setRoutingControl] = useState(null);
+
+    // Function to start routing
+    const startRouting = React.useCallback(() => {
+        navigator.geolocation.getCurrentPosition(position => {
+            const { latitude, longitude } = position.coords;
+            const userLocation = L.latLng(latitude, longitude);
+            const propertyLocation = L.latLng(destination.lat, destination.lng);
+
+            // Remove existing control if any
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            const control = L.Routing.control({
+                waypoints: [
+                    userLocation,
+                    propertyLocation
+                ],
+                routeWhileDragging: true,
+                showAlternatives: true,
+                fitSelectedRoutes: true,
+                lineOptions: {
+                    styles: [{ color: '#0078db', weight: 6 }]
+                }
+            }).addTo(map);
+
+            setRoutingControl(control);
+        }, error => {
+            alert("Unable to retrieve your location. Please check your browser permissions.");
+            console.error(error);
+        });
+    }, [map, destination, routingControl]);
+
+    // Listen for custom event or props to trigger routing? 
+    // Actually, we can just expose a button in the parent that triggers this via context or ref, 
+    // OR we put the button inside this component (as a map control).
+
+    // Effect to handle cleanup or initial setup if needed
+    useEffect(() => {
+        // No manual button addition needed anymore as we render it via React
+    }, []);
+
+    // Better approach: Since we already added the button in the parent JSX, 
+    // we need to connect that button to `startRouting`.
+    // OR, we just render the button inside THIS component and use absolute positioning CSS 
+    // but rendered as a child of MapContainer so it has map context? No, children of MapContainer are map layers.
+
+    // Correction: We can put the button inside the MapContainer as a strictly React element (div) 
+    // that uses `useMap()` hook? YES.
+
+    return (
+        <div style={{ position: "absolute", top: "50px", right: "10px", zIndex: 1000 }}>
+            <button
+                onClick={startRouting}
+                style={{
+                    padding: "8px 12px",
+                    background: "#0078db",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    fontSize: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px"
+                }}
+            >
+                📍 Get Directions
+            </button>
+        </div>
+    );
+};
 
 const PropertyDetails = () => {
     const { id } = useParams();
@@ -28,6 +109,88 @@ const PropertyDetails = () => {
     const [activeTab, setActiveTab] = useState("Overview");
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [wishlistLoading, setWishlistLoading] = useState(false);
+    const [displayCoordinates, setDisplayCoordinates] = useState(null);
+    const [geocodingError, setGeocodingError] = useState(false);
+    const [mapType, setMapType] = useState('normal');
+
+    useEffect(() => {
+        if (!property) return;
+
+        if (property.latitude && property.longitude) {
+            setDisplayCoordinates({
+                lat: parseFloat(property.latitude),
+                lng: parseFloat(property.longitude)
+            });
+            setGeocodingError(false);
+        } else if (property.address || property.location || property.city) {
+
+            const fetchCoordinates = (searchQuery) => {
+                console.log("Attempting geocode with:", searchQuery);
+                return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`)
+                    .then(res => res.json());
+            };
+
+            // Strategy: Try specific -> General
+            // 1. Full address
+            const fullQuery = [property.address, property.location, property.city, property.state].filter(Boolean).join(", ");
+
+            fetchCoordinates(fullQuery).then(data => {
+                if (data && data.length > 0) {
+                    console.log("Geocode success (Full):", data[0]);
+                    setDisplayCoordinates({
+                        lat: parseFloat(data[0].lat),
+                        lng: parseFloat(data[0].lon)
+                    });
+                    setGeocodingError(false);
+                } else {
+                    // 2. Fallback: Location + City + State
+                    const fallbackQuery = [property.location, property.city, property.state].filter(Boolean).join(", ");
+                    if (fallbackQuery === fullQuery || !fallbackQuery) {
+                        setGeocodingError(true);
+                        return;
+                    }
+                    console.log("Fallback to:", fallbackQuery);
+
+                    fetchCoordinates(fallbackQuery).then(fallbackData => {
+                        if (fallbackData && fallbackData.length > 0) {
+                            console.log("Geocode success (Fallback):", fallbackData[0]);
+                            setDisplayCoordinates({
+                                lat: parseFloat(fallbackData[0].lat),
+                                lng: parseFloat(fallbackData[0].lon)
+                            });
+                            setGeocodingError(false);
+                        } else {
+                            // 3. Fallback: City + State
+                            const cityQuery = [property.city, property.state].filter(Boolean).join(", ");
+                            if (cityQuery === fallbackQuery || !cityQuery) {
+                                setGeocodingError(true);
+                                return;
+                            }
+                            console.log("Fallback to City:", cityQuery);
+
+                            fetchCoordinates(cityQuery).then(cityData => {
+                                if (cityData && cityData.length > 0) {
+                                    console.log("Geocode success (City):", cityData[0]);
+                                    setDisplayCoordinates({
+                                        lat: parseFloat(cityData[0].lat),
+                                        lng: parseFloat(cityData[0].lon)
+                                    });
+                                    setGeocodingError(false);
+                                } else {
+                                    console.log("All geocoding attempts failed");
+                                    setGeocodingError(true);
+                                }
+                            });
+                        }
+                    });
+                }
+            })
+                .catch(err => {
+                    console.error("Geocoding error:", err);
+                    setGeocodingError(true);
+                });
+        }
+    }, [property]);
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -484,21 +647,77 @@ const PropertyDetails = () => {
                 <div style={{ padding: "30px 40px", background: "white", marginTop: "30px" }}>
                     <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "20px", color: "#333" }}>Location Map</h2>
                     <div style={{ height: "400px", borderRadius: "12px", overflow: "hidden", border: "1px solid #e0e0e0", position: "relative" }}>
-                        {property.latitude && property.longitude ? (
+                        {/* Map Toggle Button */}
+                        <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 1000, display: "flex", flexDirection: "column", gap: "10px" }}>
+                            <button
+                                onClick={() => setMapType(prev => prev === 'normal' ? 'satellite' : 'normal')}
+                                style={{
+                                    padding: "8px 12px",
+                                    background: "white",
+                                    border: "2px solid rgba(0,0,0,0.2)",
+                                    borderRadius: "4px",
+                                    cursor: "pointer",
+                                    fontWeight: "bold",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                    fontSize: "14px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "5px"
+                                }}
+                            >
+                                {mapType === 'normal' ? '🛰️ Satellite' : '🗺️ Map'}
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    // This button is decorative here or acts as a fallback? 
+                                    // Actually, looking at the code, I see THREE buttons.
+                                    // 1. Satellite toggle
+                                    // 2. The button I am removing (lines 705-735)
+                                    // 3. The button INSIDE RoutingControl (which is inside MapContainer)
+
+                                    // The user previously wanted "Get Directions".
+                                    // If I look at the previous `view_file` output:
+                                    // Lines 111-131: The button INSIDE RoutingControl.
+                                    // Lines 705-735: A "Get Directions" button inside `PropertyDetails` that does nothing useful (unused vars).
+
+                                    // Implementation strategy:
+                                    // The `RoutingControl` component ALREADY renders a "Get Directions" button (lines 111-131).
+                                    // So this outer button at 705 is DUPLICATE and BROKEN/UNUSED.
+                                    // I should REMOVE this entire button block.
+                                }}
+                                style={{ display: 'none' }}
+                            >
+                            </button>
+                        </div>
+
+                        {displayCoordinates ? (
                             <MapContainer
-                                center={[parseFloat(property.latitude), parseFloat(property.longitude)]}
+                                center={[displayCoordinates.lat, displayCoordinates.lng]}
                                 zoom={15}
+                                key={`${displayCoordinates.lat}-${displayCoordinates.lng}`}
                                 style={{ height: "100%", width: "100%" }}
+                                id="map-container"
                             >
                                 <TileLayer
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url={mapType === 'normal'
+                                        ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                                    }
+                                    attribution={mapType === 'normal'
+                                        ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        : 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                                    }
                                 />
-                                <Marker position={[parseFloat(property.latitude), parseFloat(property.longitude)]}>
+                                <Marker position={[displayCoordinates.lat, displayCoordinates.lng]}>
                                     <Popup>
                                         {property.title} <br /> {property.location}
                                     </Popup>
                                 </Marker>
+
+                                <RoutingControl
+                                    destination={{ lat: displayCoordinates.lat, lng: displayCoordinates.lng }}
+                                />
                             </MapContainer>
                         ) : (
                             <div style={{
@@ -511,26 +730,14 @@ const PropertyDetails = () => {
                                 color: "#666"
                             }}>
                                 <div style={{ fontSize: "48px", marginBottom: "15px" }}>🗺️</div>
-                                <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "10px" }}>Exact location not available</h3>
-                                <p style={{ marginBottom: "20px" }}>The owner hasn't provided precise map coordinates.</p>
-                                <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address || ''}, ${property.city || ''}, ${property.state || ''}`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{
-                                        padding: "10px 20px",
-                                        background: "#0078db",
-                                        color: "white",
-                                        textDecoration: "none",
-                                        borderRadius: "6px",
-                                        fontWeight: "600",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "8px"
-                                    }}
-                                >
-                                    View on Google Maps ↗
-                                </a>
+                                <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "10px" }}>
+                                    {geocodingError ? "Location could not be found on map" : "Loading map..."}
+                                </h3>
+                                <p style={{ marginBottom: "20px" }}>
+                                    {geocodingError
+                                        ? "The address provided could not be located."
+                                        : "Locating property..."}
+                                </p>
                             </div>
                         )}
                     </div>

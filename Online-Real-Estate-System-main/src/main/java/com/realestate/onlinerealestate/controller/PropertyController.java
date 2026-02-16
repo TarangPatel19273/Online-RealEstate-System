@@ -216,7 +216,7 @@ public class PropertyController {
     // GET PROPERTY BY ID
     // ==========================
     @GetMapping("/{id}")
-    public ResponseEntity<?> getPropertyById(@PathVariable Long id) {
+    public ResponseEntity<?> getPropertyById(@PathVariable long id) {
         try {
             Property property = propertyRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Property not found"));
@@ -435,7 +435,7 @@ public class PropertyController {
     // DELETE PROPERTY (FOR CLEANUP)
     // ==========================
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProperty(@PathVariable Long id) {
+    public ResponseEntity<?> deleteProperty(@PathVariable long id) {
         try {
             if (propertyRepository.existsById(id)) {
                 propertyRepository.deleteById(id);
@@ -454,7 +454,7 @@ public class PropertyController {
     // ==========================
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProperty(
-            @PathVariable Long id,
+            @PathVariable long id,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String price,
             @RequestParam(required = false) String location,
@@ -682,7 +682,7 @@ public class PropertyController {
     // ==========================
     @DeleteMapping("/user/{id}")
     public ResponseEntity<?> deleteUserProperty(
-            @PathVariable Long id,
+            @PathVariable long id,
             @RequestHeader("Authorization") String authHeader) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {

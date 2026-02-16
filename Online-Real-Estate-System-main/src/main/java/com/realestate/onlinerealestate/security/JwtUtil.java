@@ -12,30 +12,29 @@ import javax.crypto.SecretKey;
 @Component
 public class JwtUtil {
 
-    // ✅ MUST be at least 256 bits for HS256
-    private static final String SECRET =
-            "realestate_realestate_realestate_realestate_256bit_key";
+        // ✅ MUST be at least 256 bits for HS256
+        private static final String SECRET = "realestate_realestate_realestate_realestate_256bit_key";
 
-    private final SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes());
+        private final SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
-    public String generateToken(String email) {
+        public String generateToken(String email) {
 
-        return Jwts.builder()
-                .setSubject(email)
-                .setIssuedAt(new Date())
-                .setExpiration(
-                        new Date(System.currentTimeMillis() + 86400000) // 1 day
-                )
-                .signWith(key) // ✅ CORRECT
-                .compact();
-    }
+                return Jwts.builder()
+                                .setSubject(email)
+                                .setIssuedAt(new Date())
+                                .setExpiration(
+                                                new Date(System.currentTimeMillis() + 864000000) // 10 days
+                                )
+                                .signWith(key) // ✅ CORRECT
+                                .compact();
+        }
 
-    public String extractEmail(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
-    }
+        public String extractEmail(String token) {
+                return Jwts.parserBuilder()
+                                .setSigningKey(key)
+                                .build()
+                                .parseClaimsJws(token)
+                                .getBody()
+                                .getSubject();
+        }
 }
