@@ -1,10 +1,10 @@
 package com.realestate.onlinerealestate.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 @Service
 public class EmailService {
@@ -12,6 +12,7 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Async
     public void sendOtp(String email, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);

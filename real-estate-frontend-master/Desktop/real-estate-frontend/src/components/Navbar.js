@@ -44,6 +44,7 @@ function Navbar() {
           <div className="nav-item" onClick={() => navigate("/?type=Buy")}>Buy</div>
           <div className="nav-item" onClick={() => navigate("/?type=Rent")}>Rent</div>
           <div className="nav-item" onClick={() => navigate("/sell-property")}>Sell</div>
+          <div className="nav-item" onClick={() => navigate("/budget-calculator")}>Budget Calculator</div>
         </div>
 
         {/* Right Actions */}

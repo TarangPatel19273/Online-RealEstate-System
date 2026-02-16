@@ -36,14 +36,33 @@ const LoanApplication = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Mock submission
-        console.log("Loan Application Submitted:", formData);
-        setSubmitted(true);
-        setTimeout(() => {
-            navigate("/");
-        }, 3000);
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch("http://localhost:8080/api/loans/apply", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                console.log("Loan Application Submitted:", formData);
+                setSubmitted(true);
+                setTimeout(() => {
+                    navigate("/");
+                }, 3000);
+            } else {
+                console.error("Failed to submit application");
+                alert("Something went wrong. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error submitting application:", error);
+            alert("Error connecting to server. Please try again.");
+        }
     };
 
     return (

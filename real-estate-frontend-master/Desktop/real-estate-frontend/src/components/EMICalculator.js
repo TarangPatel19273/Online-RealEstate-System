@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './EMICalculator.css';
 
 const EMICalculator = ({ propertyPrice }) => {
@@ -11,9 +12,10 @@ const EMICalculator = ({ propertyPrice }) => {
     };
 
     const initialPrincipal = parsePrice(propertyPrice);
+    const maxLoanLimit = Math.round(initialPrincipal * 0.9); // 90% of property price
 
     // State
-    const [loanAmount, setLoanAmount] = useState(initialPrincipal);
+    const [loanAmount, setLoanAmount] = useState(maxLoanLimit);
     const [interestRate, setInterestRate] = useState(8.5);
     const [tenure, setTenure] = useState(20);
     const [emi, setEmi] = useState(0);
@@ -47,6 +49,8 @@ const EMICalculator = ({ propertyPrice }) => {
         });
     };
 
+    const navigate = useNavigate();
+
     return (
         <div className="emi-calculator-card">
             <div className="emi-header">
@@ -60,13 +64,13 @@ const EMICalculator = ({ propertyPrice }) => {
                     {/* Loan Amount */}
                     <div className="input-group">
                         <div className="input-label-row">
-                            <label className="input-label">Loan Amount</label>
+                            <label className="input-label">Loan Amount (Max 90%)</label>
                             <span className="input-value">{formatCurrency(loanAmount)}</span>
                         </div>
                         <input
                             type="range"
                             min="100000"
-                            max="50000000"
+                            max={maxLoanLimit}
                             step="10000"
                             value={loanAmount}
                             onChange={(e) => setLoanAmount(Number(e.target.value))}
@@ -133,7 +137,10 @@ const EMICalculator = ({ propertyPrice }) => {
                         </div>
                     </div>
 
-                    <button className="btn-apply-loan" onClick={() => alert('Feature coming soon: Apply for home loan partners')}>
+                    <button
+                        className="btn-apply-loan"
+                        onClick={() => navigate('/loan-application', { state: { loanAmount: loanAmount } })}
+                    >
                         Apply for Loan
                     </button>
                 </div>

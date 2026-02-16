@@ -363,10 +363,12 @@ const PropertyDetails = () => {
                             </div>
                         )}
 
-                        {/* EMI Calculator */}
-                        <div style={{ marginBottom: "25px" }}>
-                            <EMICalculator propertyPrice={property.price} />
-                        </div>
+                        {/* EMI Calculator - Only for Buying */}
+                        {property.type !== "Rent" && (
+                            <div style={{ marginBottom: "25px" }}>
+                                <EMICalculator propertyPrice={property.price} />
+                            </div>
+                        )}
 
                         {/* Amenities */}
                         {property.amenities && property.amenities.length > 0 && (

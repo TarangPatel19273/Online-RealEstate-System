@@ -10,6 +10,8 @@ import PropertyDetails from "./components/PropertyDetails";
 import Wishlist from "./components/Wishlist";
 import Profile from "./components/Profile";
 import Compare from "./components/Compare";
+import BudgetCalculator from "./components/BudgetCalculator";
+import LoanApplication from "./pages/LoanApplication";
 
 function App() {
   return (
@@ -73,6 +75,23 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/budget-calculator"
+          element={
+            <ProtectedRoute>
+              <BudgetCalculator />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/loan-application"
+          element={
+            <ProtectedRoute>
+              <LoanApplication />
             </ProtectedRoute>
           }
         />
