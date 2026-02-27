@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import * as authService from "../services/authService";
 import "./VerifyOtp.css";
 
-function VerifyOtp() {
+function VerifyPasswordOtp() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -14,6 +14,7 @@ function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
   const email = location.state?.email;
+  const isPasswordReset = location.state?.isPasswordReset;
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -38,9 +39,9 @@ function VerifyOtp() {
         </div>
         <div className="auth-form-section">
           <div className="form-container">
-            <p style={{ textAlign: "center", color: "#dc3545", fontSize: "1rem" }}>Invalid access. Please sign up again.</p>
-            <button className="submit-button" onClick={() => navigate("/signup")}>
-              Go Back to Sign Up
+            <p style={{ textAlign: "center", color: "#dc3545", fontSize: "1rem" }}>Invalid access. Please try again.</p>
+            <button className="submit-button" onClick={() => navigate(isPasswordReset ? "/forgot-password" : "/signup")}>
+              Go Back
             </button>
           </div>
         </div>
@@ -78,10 +79,23 @@ function VerifyOtp() {
       setLoading(true);
       setError("");
 
-      await authService.verifyOtp(email, otpCode);
+      if (isPasswordReset) {
+        // Verify OTP for password reset
+        await authService.verifyPasswordResetOtp(email, otpCode);
+        
+        setMessage("OTP verified successfully!");
+        
+        // Navigate to password reset page
+        setTimeout(() => {
+          navigate("/reset-password", { state: { email, otp: otpCode } });
+        }, 1000);
+      } else {
+        // Original OTP verification for signup
+        await authService.verifyOtp(email, otpCode);
 
-      // Navigate to login page after successful verification
-      navigate("/login", { state: { message: "Account verified successfully! Please login." } });
+        // Navigate to login page after successful verification
+        navigate("/login", { state: { message: "Account verified successfully! Please login." } });
+      }
     } catch (err) {
       setError(err.response?.data || "Invalid or expired OTP");
     } finally {
@@ -93,13 +107,14 @@ function VerifyOtp() {
     try {
       setResendTimer(30);
       setMessage("OTP resent successfully!");
-      // Call your resend OTP API here if needed
+      
+      if (isPasswordReset) {
+        await authService.forgotPassword(email);
+      }
     } catch (err) {
       setError("Failed to resend OTP");
     }
   };
-
-  const otpCode = otp.join("");
 
   return (
     <div className="auth-page-modern">
@@ -149,86 +164,99 @@ function VerifyOtp() {
       {/* Right Side - Form */}
       <div className="auth-form-section">
         <div className="form-container">
+          <button 
+            className="back-button"
+            onClick={() => navigate(isPasswordReset ? "/forgot-password" : "/signup")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#0066cc",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+              marginBottom: "1rem",
+              textDecoration: "underline"
+            }}
+          >
+            ← Back
+          </button>
+
           <div className="form-header">
-            <h2 className="form-title">Verify Email</h2>
-            <p className="form-subtitle">
-              Enter the 6-digit code sent to<br />
-              <span className="email-highlight">{email}</span>
-            </p>
+            <h2 className="form-title">Verify OTP</h2>
+            <p className="form-subtitle">Enter the 6-digit OTP sent to {email}</p>
           </div>
 
-          <div className="otp-section">
-            <div className="otp-input-group">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  type="text"
-                  maxLength="1"
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="otp-input"
-                  placeholder="•"
-                  inputMode="numeric"
-                />
-              ))}
-            </div>
-
-            {error && (
-              <div className="form-message error">
-                <span className="message-icon">⚠️</span>
-                <span>{error}</span>
-              </div>
-            )}
-            {message && (
-              <div className="form-message success">
-                <span className="message-icon">✅</span>
-                <span>{message}</span>
-              </div>
-            )}
-
-            <button
-              onClick={handleVerifyOtp}
-              disabled={loading || otpCode.length !== 6}
-              className="submit-button"
-            >
-              <div className="button-content">
-                {loading ? (
-                  <>
-                    <div className="spinner"></div>
-                    <span>Verifying...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Verify OTP</span>
-                    <span className="button-arrow">→</span>
-                  </>
-                )}
-              </div>
-            </button>
+          <div className="otp-container">
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                ref={(el) => {
+                  inputRefs.current[index] = el;
+                }}
+                type="text"
+                maxLength="1"
+                className="otp-input"
+                value={digit}
+                onChange={(e) => handleOtpChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                disabled={loading}
+              />
+            ))}
           </div>
 
-          <div className="resend-section">
-            <p className="resend-text">
-              Didn't receive the code?{" "}
-              {resendTimer > 0 ? (
-                <span className="resend-timer">Resend in {resendTimer}s</span>
+          <button 
+            type="button"
+            className="submit-button"
+            onClick={handleVerifyOtp}
+            disabled={loading}
+            style={{ marginTop: "2rem" }}
+          >
+            <div className="button-content">
+              {loading ? (
+                <>
+                  <div className="spinner"></div>
+                  <span>Verifying...</span>
+                </>
               ) : (
-                <button
-                  onClick={handleResend}
-                  className="resend-button"
-                >
-                  Resend OTP
-                </button>
+                <>
+                  <span>Verify OTP</span>
+                  <span className="button-arrow">→</span>
+                </>
               )}
-            </p>
-          </div>
+            </div>
+          </button>
 
-          <div className="form-footer">
-            <p>
-              Need help? <span className="link" onClick={() => navigate("/signup")}>Back to Sign Up</span>
-            </p>
+          {error && (
+            <div className="form-message error" style={{ marginTop: "1rem" }}>
+              <span className="message-icon">⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {message && (
+            <div className="form-message success" style={{ marginTop: "1rem" }}>
+              <span className="message-icon">✅</span>
+              <span>{message}</span>
+            </div>
+          )}
+
+          <div className="resend-section" style={{ marginTop: "2rem", textAlign: "center" }}>
+            <p style={{ color: "#666", marginBottom: "1rem" }}>Didn't receive the OTP?</p>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendTimer > 0 || loading}
+              style={{
+                background: "none",
+                border: "none",
+                color: resendTimer > 0 ? "#999" : "#0066cc",
+                cursor: resendTimer > 0 ? "not-allowed" : "pointer",
+                fontSize: "0.9rem",
+                textDecoration: "underline",
+                fontWeight: "500"
+              }}
+            >
+              {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
+            </button>
           </div>
         </div>
       </div>
@@ -236,4 +264,4 @@ function VerifyOtp() {
   );
 }
 
-export default VerifyOtp;
+export default VerifyPasswordOtp;

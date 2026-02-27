@@ -57,4 +57,21 @@
 	        return newOtp;
 	    }
 
+	    @Transactional
+	    public String generatePasswordResetOtp(String email) {
+
+	        otpRepository.deleteByEmail(email);
+
+	        String otp = String.valueOf(100000 + new Random().nextInt(900000));
+
+	        OtpVerification verification = new OtpVerification();
+	        verification.setEmail(email);
+	        verification.setOtp(otp);
+	        verification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
+	        otpRepository.save(verification);
+
+	        return otp;
+	    }
+
 	}

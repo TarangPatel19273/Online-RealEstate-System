@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.realestate.onlinerealestate.dto.UserProfileResponse;
 import com.realestate.onlinerealestate.dto.UserUpdateRequest;
+import com.realestate.onlinerealestate.dto.UserIdResponse;
 import com.realestate.onlinerealestate.model.User;
 import com.realestate.onlinerealestate.repository.UserRepository;
 import com.realestate.onlinerealestate.security.JwtUtil;
@@ -83,6 +84,21 @@ public class UserController {
         try {
             UserProfileResponse profile = userService.getUserProfile(userId);
             return ResponseEntity.ok(profile);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get user ID by email (for chat feature)
+     */
+    @GetMapping("/by-email/{email}")
+    public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            return ResponseEntity.ok(new UserIdResponse(user.getId(), user.getUsername(), user.getEmail()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }

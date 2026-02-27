@@ -4,7 +4,7 @@ export const profileService = {
   // Get current user profile
   getProfile: async () => {
     try {
-      const response = await axiosInstance.get("/user/profile");
+      const response = await axiosInstance.get("/api/user/profile");
       return response.data;
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -15,7 +15,7 @@ export const profileService = {
   // Update user profile
   updateProfile: async (profileData) => {
     try {
-      const response = await axiosInstance.put("/user/profile", profileData);
+      const response = await axiosInstance.put("/api/user/profile", profileData);
       return response.data;
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -26,7 +26,7 @@ export const profileService = {
   // Get user profile by ID
   getUserProfileById: async (userId) => {
     try {
-      const response = await axiosInstance.get(`/user/profile/${userId}`);
+      const response = await axiosInstance.get(`/api/user/profile/${userId}`);
       return response.data;
     } catch (error) {
       console.error("Error fetching user profile:", error);

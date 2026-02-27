@@ -2,22 +2,22 @@ import axiosInstance from "./axiosConfig";
 
 // Get all properties
 export const getAllProperties = () => {
-  return axiosInstance.get('/properties');
+  return axiosInstance.get('/api/properties');
 };
 
 // Get user's properties
 export const getMyProperties = () => {
-  return axiosInstance.get('/properties/my-properties');
+  return axiosInstance.get('/api/properties/my-properties');
 };
 
 // Get property by ID
 export const getPropertyById = (id) => {
-  return axiosInstance.get(`/properties/${id}`);
+  return axiosInstance.get(`/api/properties/${id}`);
 };
 
 // Upload property
 export const uploadProperty = (formData) => {
-  return axiosInstance.post('/properties/upload', formData, {
+  return axiosInstance.post('/api/properties/upload', formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -26,7 +26,7 @@ export const uploadProperty = (formData) => {
 
 // Update property
 export const updateProperty = (id, formData) => {
-  return axiosInstance.put(`/properties/${id}`, formData, {
+  return axiosInstance.put(`/api/properties/${id}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -35,7 +35,7 @@ export const updateProperty = (id, formData) => {
 
 // Delete property
 export const deleteProperty = (id) => {
-  return axiosInstance.delete(`/properties/user/${id}`);
+  return axiosInstance.delete(`/api/properties/user/${id}`);
 };
 
 const propertyService = {
@@ -46,10 +46,10 @@ const propertyService = {
   updateProperty,
   deleteProperty,
   searchProperties: (queryParams) => {
-    return axiosInstance.get('/properties/search', { params: queryParams });
+    return axiosInstance.get('/api/properties/search', { params: queryParams });
   },
   compareProperties: (ids) => {
-    return axiosInstance.get('/properties/compare', { params: { ids: ids.join(",") } });
+    return axiosInstance.get('/api/properties/compare', { params: { ids: ids.join(",") } });
   }
 };
 
