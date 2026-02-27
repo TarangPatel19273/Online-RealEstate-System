@@ -136,4 +136,74 @@ public class AuthController {
         // Return JSON with token and user info
         return ResponseEntity.ok(new com.realestate.onlinerealestate.dto.AuthResponse(token, user));
     }
+
+    // =========================
+    // FORGOT PASSWORD → SEND OTP
+    // =========================
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody OtpRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(404).body("User not found with this email");
+        }
+
+        String otp = otpService.generatePasswordResetOtp(request.getEmail());
+        emailService.sendOtp(request.getEmail(), otp);
+
+        return ResponseEntity.ok("OTP sent to email for password reset");
+    }
+
+    // =========================
+    // VERIFY OTP FOR PASSWORD RESET
+    // =========================
+    @PostMapping("/verify-password-reset-otp")
+    public ResponseEntity<?> verifyPasswordResetOtp(@RequestBody OtpRequest request) {
+
+        OtpVerification otpData = otpRepository
+                .findTopByEmailOrderByExpiryTimeDesc(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("OTP session expired"));
+
+        if (!otpData.getOtp().equals(request.getOtp())) {
+            return ResponseEntity.badRequest().body("Invalid OTP");
+        }
+
+        if (otpData.getExpiryTime().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("OTP expired");
+        }
+
+        return ResponseEntity.ok("OTP verified successfully");
+    }
+
+    // =========================
+    // RESET PASSWORD
+    // =========================
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody com.realestate.onlinerealestate.dto.ResetPasswordRequest request) {
+
+        OtpVerification otpData = otpRepository
+                .findTopByEmailOrderByExpiryTimeDesc(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("OTP session expired"));
+
+        if (!otpData.getOtp().equals(request.getOtp())) {
+            return ResponseEntity.badRequest().body("Invalid OTP");
+        }
+
+        if (otpData.getExpiryTime().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("OTP expired");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+
+        // Delete OTP record
+        otpRepository.delete(otpData);
+
+        return ResponseEntity.ok("Password reset successfully");
+    }
 }

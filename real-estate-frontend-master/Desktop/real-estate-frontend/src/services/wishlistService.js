@@ -3,22 +3,22 @@ import axiosInstance from './axiosConfig';
 const wishlistService = {
   // Add property to wishlist
   addToWishlist: (propertyId) => {
-    return axiosInstance.post(`/wishlist/add/${propertyId}`);
+    return axiosInstance.post(`/api/wishlist/add/${propertyId}`);
   },
 
   // Remove property from wishlist
   removeFromWishlist: (propertyId) => {
-    return axiosInstance.delete(`/wishlist/remove/${propertyId}`);
+    return axiosInstance.delete(`/api/wishlist/remove/${propertyId}`);
   },
 
   // Check if property is in wishlist
   checkWishlist: (propertyId) => {
-    return axiosInstance.get(`/wishlist/check/${propertyId}`);
+    return axiosInstance.get(`/api/wishlist/check/${propertyId}`);
   },
 
   // Get all wishlist items
   getMyWishlist: () => {
-    return axiosInstance.get(`/wishlist/my-wishlist`);
+    return axiosInstance.get(`/api/wishlist/my-wishlist`);
   }
 };
 

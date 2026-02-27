@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
+import ForgotPassword from "./components/ForgotPassword";
+import VerifyPasswordOtp from "./components/VerifyPasswordOtp";
+import ResetPassword from "./components/ResetPassword";
 import Home from "./components/Home";
 import VerifyOtp from "./components/VerifyOtp";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -12,6 +15,7 @@ import Profile from "./components/Profile";
 import Compare from "./components/Compare";
 import BudgetCalculator from "./components/BudgetCalculator";
 import LoanApplication from "./pages/LoanApplication";
+import ChatPage from "./pages/ChatPage";
 
 function App() {
   return (
@@ -19,6 +23,9 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-password-otp" element={<VerifyPasswordOtp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
 
         {/* Protected Routes */}
@@ -92,6 +99,14 @@ function App() {
           element={
             <ProtectedRoute>
               <LoanApplication />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat/:receiverId/:propertyId/:receiverUsername"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           }
         />

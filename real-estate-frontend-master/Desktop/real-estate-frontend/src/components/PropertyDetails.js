@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import Navbar from "./Navbar";
+import Chat from "./Chat";
 import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
 import EMICalculator from "./EMICalculator";
@@ -106,6 +107,8 @@ const PropertyDetails = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isOwner, setIsOwner] = useState(false);
     const [showContact, setShowContact] = useState(false);
+    const [showChat, setShowChat] = useState(false);
+    const [sellerId, setSellerId] = useState(null);
     const [activeTab, setActiveTab] = useState("Overview");
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -246,7 +249,30 @@ const PropertyDetails = () => {
             }
         };
 
+        const fetchSellerId = async () => {
+            if (!property) return;
+            
+            try {
+                // Try to get seller ID from property if it exists
+                if (property.userId) {
+                    setSellerId(property.userId);
+                } else if (property.sellerEmail) {
+                    // Fetch seller ID from API using email
+                    const response = await fetch(`http://localhost:8080/api/user/by-email/${encodeURIComponent(property.sellerEmail)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setSellerId(data.id);
+                    } else {
+                        console.warn("Could not fetch seller ID");
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching seller ID:", error);
+            }
+        };
+
         checkOwnership();
+        fetchSellerId();
     }, [property]);
 
     useEffect(() => {
@@ -341,12 +367,28 @@ const PropertyDetails = () => {
                                 {isInWishlist ? "♥" : "♡"}
                             </button>
                             {!isOwner && (
-                                <button
-                                    onClick={() => setShowContact(true)}
-                                    style={{ padding: "12px 32px", background: "#0078db", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
-                                >
-                                    Contact Owner <span style={{ background: "rgba(255,255,255,0.3)", padding: "2px 8px", borderRadius: "4px", marginLeft: "8px" }}>FREE</span>
-                                </button>
+                                <div style={{ display: "flex", gap: "10px" }}>
+                                    <button
+                                        onClick={() => setShowContact(true)}
+                                        style={{ padding: "12px 32px", background: "#0078db", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
+                                    >
+                                        Contact Owner <span style={{ background: "rgba(255,255,255,0.3)", padding: "2px 8px", borderRadius: "4px", marginLeft: "8px" }}>FREE</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const token = localStorage.getItem("token");
+                                            if (!token) {
+                                                alert("Please login to chat with the seller");
+                                                navigate("/login");
+                                                return;
+                                            }
+                                            setShowChat(true);
+                                        }}
+                                        style={{ padding: "12px 32px", background: "#28a745", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}
+                                    >
+                                        💬 Chat with Seller
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -744,6 +786,16 @@ const PropertyDetails = () => {
                 </div>
 
             </div>
+
+            {/* Chat Component */}
+            {showChat && sellerId && (
+                <Chat 
+                    propertyId={parseInt(id)}
+                    receiverId={sellerId}
+                    receiverUsername={property.sellerUsername}
+                    onClose={() => setShowChat(false)}
+                />
+            )}
         </div>
     );
 };

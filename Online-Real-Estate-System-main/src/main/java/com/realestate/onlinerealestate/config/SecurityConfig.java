@@ -31,8 +31,18 @@ public class SecurityConfig {
                         // ✅ AUTH APIs
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // ✅ WEBSOCKET ENDPOINTS
+                        .requestMatchers("/ws-chat/**").permitAll()
+                        .requestMatchers("/ws-chat").permitAll()
+
                         // ✅ PROPERTY UPLOAD API
                         .requestMatchers("/api/properties/**").permitAll()
+
+                        // ✅ CHAT REST APIs - REQUIRES AUTHENTICATION
+                        .requestMatchers("/chat/**").authenticated()
+
+                        // ✅ USER APIs (for getting user info by email)
+                        .requestMatchers("/api/user/**").permitAll()
 
                         // ✅ WISHLIST API (Controller handles auth)
                         .requestMatchers("/api/wishlist/**").permitAll()
@@ -58,7 +68,16 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:3000"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Requested-With"));
+        config.setAllowedHeaders(List.of(
+            "Content-Type", 
+            "Authorization", 
+            "X-Requested-With",
+            "userId",
+            "X-User-Id",
+            "Sec-WebSocket-Extensions",
+            "Sec-WebSocket-Key",
+            "Sec-WebSocket-Version"
+        ));
         config.setExposedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
