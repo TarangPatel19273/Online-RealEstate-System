@@ -12,6 +12,7 @@ import Profile from "./components/Profile";
 import Compare from "./components/Compare";
 import BudgetCalculator from "./components/BudgetCalculator";
 import LoanApplication from "./pages/LoanApplication";
+import DocumentsInfo from "./components/DocumentsInfo";
 
 function App() {
   return (
@@ -95,8 +96,17 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/documents-info"
+          element={
+            <ProtectedRoute>
+              <DocumentsInfo />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
-    </BrowserRouter>
+    </BrowserRouter >
   );
 }
 

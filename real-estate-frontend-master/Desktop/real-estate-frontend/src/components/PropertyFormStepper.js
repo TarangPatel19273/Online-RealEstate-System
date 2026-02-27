@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { getCoordinates } from "../utils/geocode";
+import { mappls } from 'mappls-web-maps';
 import "./PropertyFormStepper.css";
 
 const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false }) => {
@@ -20,6 +21,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
   const [currentStep, setCurrentStep] = useState((!editMode && formData && formData.listingType) ? 2 : 1);
   // eslint-disable-next-line no-unused-vars
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mapplsObject, setMapplsObject] = useState(null);
   const [formState, setFormState] = useState({
     listingType: formData.listingType || "Sell",
     propertyType: formData.propertyType || "Residential",
@@ -49,6 +51,8 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
     imagesToDelete: formData.imagesToDelete || [],
     price: formData.price || "",
     contactNumber: formData.contactNumber || "",
+    latitude: formData.latitude || null,
+    longitude: formData.longitude || null,
   });
   const [stepError, setStepError] = useState("");
 
@@ -146,6 +150,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
       if (!hasValue(formState.state)) return "Please enter the state.";
       if (!hasValue(formState.address)) return "Please enter the address.";
       if (!hasValue(formState.pincode)) return "Please enter the pincode.";
+      if (!formState.latitude || !formState.longitude) return "Please find the location on the map.";
     }
 
     if (step === 3) {
@@ -155,11 +160,19 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
       const isPlot = ["Plot / Land"].includes(formState.category);
       const isCommercial = formState.propertyType === "Commercial";
 
+      // Validation for Residential (Non-Plot)
       if (!isPlot && !isCommercial) {
         if (!hasValue(formState.bedrooms)) return "Please enter the number of bedrooms.";
         if (!hasValue(formState.bathrooms)) return "Please enter the number of bathrooms.";
       }
 
+      // Validation for Commercial
+      if (isCommercial && !isPlot) {
+        // Commercial typically needs washrooms (bathrooms field) but not bedrooms
+        if (!hasValue(formState.bathrooms)) return "Please enter the number of washrooms.";
+      }
+
+      // Validation for Non-Plot (Floors, Age)
       if (!isPlot) {
         const isVillaOrFarm = ["Independent House / Villa", "Farmhouse"].includes(formState.category);
 
@@ -171,7 +184,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
         if (!hasValue(formState.propertyAge)) return "Please enter the property age.";
       }
 
-      if (!hasValue(formState.area)) return "Please enter the built-up area.";
+      if (!hasValue(formState.area)) return "Please enter the area.";
       if (!hasValue(formState.description)) return "Please enter the description.";
     }
 
@@ -222,33 +235,8 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
 
     setIsSubmitting(true);
     try {
-      // 🟢 Geocoding Logic
-      let lat = null;
-      let lon = null;
-
-      try {
-        const fullAddress = `${formState.address}, ${formState.city}, ${formState.state}`;
-        console.log("Fetching coordinates for:", fullAddress);
-
-        // Add a small delay/debounce if needed, but for now direct call
-        const coords = await getCoordinates(fullAddress);
-
-        if (coords) {
-          lat = coords.lat;
-          lon = coords.lon;
-          console.log("Coordinates found:", lat, lon);
-        } else {
-          console.warn("Geocoding returned null, map will not be available for this property.");
-          // Optional: alert("Could not fetch location coordinates. The map location might not be accurate.");
-        }
-      } catch (geoError) {
-        console.warn("Geocoding failed, proceeding without coordinates:", geoError);
-      }
-
       onComplete({
-        ...formState,
-        latitude: lat,
-        longitude: lon
+        ...formState
       });
     } catch (e) {
       console.error("Error in finish:", e);
@@ -402,6 +390,107 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                   className="form-input"
                 />
               </div>
+
+              <div className="form-group" style={{ marginTop: '20px' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const fullAddress = `${formState.address}, ${formState.city}, ${formState.state}`;
+                    if (!fullAddress.trim() || fullAddress === ", , ") {
+                      alert("Please enter a valid address to locate on the map.");
+                      return;
+                    }
+
+                    try {
+                      const coords = await getCoordinates(fullAddress);
+                      if (coords && coords.lat && coords.lon) {
+                        setFormState(prev => ({
+                          ...prev,
+                          latitude: coords.lat,
+                          longitude: coords.lon
+                        }));
+
+                        // Initialize Mappls SDK if not already done
+                        const mapplsSDK = new mappls();
+                        const apiKey = "1a1704953408921857138133b3ba2c10";
+
+                        mapplsSDK.initialize(apiKey, { map: true }, () => {
+                          const mapProps = {
+                            center: [coords.lat, coords.lon],
+                            zoom: 15,
+                            draggable: true,
+                            zoomControl: true,
+                            hybrid: true
+                          };
+
+                          const initMap = () => {
+                            if (!document.getElementById('map-container-stepper')) {
+                              setTimeout(initMap, 100);
+                              return;
+                            }
+
+                            // Clear previous map instance if it exists
+                            if (mapplsObject) {
+                              // Need to clean up old map properly - mapmyindia doesn't have an obvious destroy method,
+                              // but we re-create it by replacing the container's contents.
+                            }
+
+                            const map = new mapplsSDK.Map('map-container-stepper', mapProps);
+                            setMapplsObject(map);
+
+                            const marker = new mapplsSDK.Marker({
+                              map: map,
+                              position: [coords.lat, coords.lon],
+                              draggable: true
+                            });
+
+                            marker.addListener('dragend', function (e) {
+                              const pos = marker.getPosition();
+                              setFormState(prev => ({
+                                ...prev,
+                                latitude: pos.lat,
+                                longitude: pos.lng
+                              }));
+                            });
+                          };
+
+                          setTimeout(initMap, 100);
+                        });
+
+                      } else {
+                        alert("Could not find coordinates for this address.");
+                      }
+                    } catch (e) {
+                      console.error(e);
+                      alert("Error geocoding address.");
+                    }
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#0078db",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600"
+                  }}
+                >
+                  Find on Map
+                </button>
+              </div>
+
+              {formState.latitude && formState.longitude && (
+                <div style={{ marginTop: "20px" }}>
+                  <p style={{ marginBottom: "10px", fontSize: "14px", color: "#666" }}>
+                    Drag the marker to adjust the exact location of your property.
+                  </p>
+                  <div
+                    id="map-container-stepper"
+                    style={{ width: "100%", height: "300px", borderRadius: "8px", border: "1px solid #ddd" }}
+                  ></div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -435,21 +524,68 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                 </div>
               </div>
 
-              {!["Plot / Land"].includes(formState.category) && formState.propertyType !== "Commercial" && (
+              {/* Conditional Fields based on Property Type & Category */}
+
+              {/* PLOT / LAND specifics */}
+              {["Plot / Land"].includes(formState.category) ? (
                 <>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Bedrooms</label>
+                      <label>Plot Area (sq.ft)</label>
                       <input
                         type="number"
-                        placeholder="0"
-                        value={formState.bedrooms}
-                        onChange={(e) => handleInputChange("bedrooms", e.target.value)}
+                        placeholder="Enter plot area"
+                        value={formState.area}
+                        onChange={(e) => handleInputChange("area", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Length (ft)</label>
+                      <input
+                        type="number"
+                        placeholder="Enter length"
+                        value={formState.length}
+                        onChange={(e) => handleInputChange("length", e.target.value)}
                         className="form-input"
                       />
                     </div>
                     <div className="form-group">
-                      <label>Bathrooms</label>
+                      <label>Width (ft)</label>
+                      <input
+                        type="number"
+                        placeholder="Enter width"
+                        value={formState.width}
+                        onChange={(e) => handleInputChange("width", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* RESIDENTIAL (Non-Plot) & COMMERCIAL */
+                <>
+                  {/* Bedrooms/Bathrooms/Balconies Row */}
+                  <div className="form-row">
+                    {/* Bedrooms - Hide for Commercial */}
+                    {formState.propertyType !== "Commercial" && (
+                      <div className="form-group">
+                        <label>Bedrooms</label>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={formState.bedrooms}
+                          onChange={(e) => handleInputChange("bedrooms", e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
+                    )}
+
+                    {/* Bathrooms / Washrooms */}
+                    <div className="form-group">
+                      <label>{formState.propertyType === "Commercial" ? "Washrooms" : "Bathrooms"}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -458,78 +594,85 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                         className="form-input"
                       />
                     </div>
+
+                    {/* Balconies - Hide for Commercial */}
+                    {formState.propertyType !== "Commercial" && (
+                      <div className="form-group">
+                        <label>Balconies</label>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={formState.balconies}
+                          onChange={(e) => handleInputChange("balconies", e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Area Row */}
+                  <div className="form-row">
                     <div className="form-group">
-                      <label>Balconies</label>
+                      <label>Built-up Area (sqft)</label>
                       <input
                         type="number"
-                        placeholder="0"
-                        value={formState.balconies}
-                        onChange={(e) => handleInputChange("balconies", e.target.value)}
+                        placeholder="Enter area"
+                        value={formState.area}
+                        onChange={(e) => handleInputChange("area", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Carpet Area (sqft)</label>
+                      <input
+                        type="number"
+                        placeholder="Enter carpet area"
+                        value={formState.carpetArea}
+                        onChange={(e) => handleInputChange("carpetArea", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Floors & Age Row */}
+                  <div className="form-row">
+                    {/* Floor Number - Hide for Villa/Farmhouse */}
+                    {!["Independent House / Villa", "Farmhouse"].includes(formState.category) && (
+                      <div className="form-group">
+                        <label>Floor Number</label>
+                        <input
+                          type="text"
+                          placeholder="e.g., 2nd, 5th, Ground"
+                          value={formState.floorNumber}
+                          onChange={(e) => handleInputChange("floorNumber", e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label>Total Floors</label>
+                      <input
+                        type="number"
+                        placeholder="Total floors in building"
+                        value={formState.totalFloors}
+                        onChange={(e) => handleInputChange("totalFloors", e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Property Age</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 2 years"
+                        value={formState.propertyAge}
+                        onChange={(e) => handleInputChange("propertyAge", e.target.value)}
                         className="form-input"
                       />
                     </div>
                   </div>
                 </>
-              )}
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Built-up Area (sqft)</label>
-                  <input
-                    type="number"
-                    placeholder="Enter area"
-                    value={formState.area}
-                    onChange={(e) => handleInputChange("area", e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Carpet Area (sqft)</label>
-                  <input
-                    type="number"
-                    placeholder="Enter carpet area"
-                    value={formState.carpetArea}
-                    onChange={(e) => handleInputChange("carpetArea", e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-              </div>
-
-              {!["Plot / Land"].includes(formState.category) && (
-                <div className="form-row">
-                  {!["Independent House / Villa", "Farmhouse"].includes(formState.category) && (
-                    <div className="form-group">
-                      <label>Floor Number</label>
-                      <input
-                        type="text"
-                        placeholder="e.g., 2nd, 5th, Ground"
-                        value={formState.floorNumber}
-                        onChange={(e) => handleInputChange("floorNumber", e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-                  )}
-                  <div className="form-group">
-                    <label>Total Floors</label>
-                    <input
-                      type="number"
-                      placeholder="Total floors in building"
-                      value={formState.totalFloors}
-                      onChange={(e) => handleInputChange("totalFloors", e.target.value)}
-                      className="form-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Property Age</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., 2 years, 5 months old"
-                      value={formState.propertyAge}
-                      onChange={(e) => handleInputChange("propertyAge", e.target.value)}
-                      className="form-input"
-                    />
-                  </div>
-                </div>
               )}
 
               <div className="form-group">

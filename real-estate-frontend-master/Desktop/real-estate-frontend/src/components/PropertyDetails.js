@@ -1,106 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import { mappls } from 'mappls-web-maps';
+import "./PropertyDetails.css";
+
 import Navbar from "./Navbar";
 import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
 import EMICalculator from "./EMICalculator";
-import "leaflet-routing-machine";
-import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
-import "./PropertyDetails.css";
 
-// Fix for default marker icon in Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
-    iconUrl: require("leaflet/dist/images/marker-icon.png"),
-    shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
-});
-
-// Component to handle routing
-const RoutingControl = ({ destination }) => {
-    const map = useMap();
-    const [routingControl, setRoutingControl] = useState(null);
-
-    // Function to start routing
-    const startRouting = React.useCallback(() => {
-        navigator.geolocation.getCurrentPosition(position => {
-            const { latitude, longitude } = position.coords;
-            const userLocation = L.latLng(latitude, longitude);
-            const propertyLocation = L.latLng(destination.lat, destination.lng);
-
-            // Remove existing control if any
-            if (routingControl) {
-                map.removeControl(routingControl);
-            }
-
-            const control = L.Routing.control({
-                waypoints: [
-                    userLocation,
-                    propertyLocation
-                ],
-                routeWhileDragging: true,
-                showAlternatives: true,
-                fitSelectedRoutes: true,
-                lineOptions: {
-                    styles: [{ color: '#0078db', weight: 6 }]
-                }
-            }).addTo(map);
-
-            setRoutingControl(control);
-        }, error => {
-            alert("Unable to retrieve your location. Please check your browser permissions.");
-            console.error(error);
-        });
-    }, [map, destination, routingControl]);
-
-    // Listen for custom event or props to trigger routing? 
-    // Actually, we can just expose a button in the parent that triggers this via context or ref, 
-    // OR we put the button inside this component (as a map control).
-
-    // Effect to handle cleanup or initial setup if needed
-    useEffect(() => {
-        // No manual button addition needed anymore as we render it via React
-    }, []);
-
-    // Better approach: Since we already added the button in the parent JSX, 
-    // we need to connect that button to `startRouting`.
-    // OR, we just render the button inside THIS component and use absolute positioning CSS 
-    // but rendered as a child of MapContainer so it has map context? No, children of MapContainer are map layers.
-
-    // Correction: We can put the button inside the MapContainer as a strictly React element (div) 
-    // that uses `useMap()` hook? YES.
-
-    return (
-        <div style={{ position: "absolute", top: "50px", right: "10px", zIndex: 1000 }}>
-            <button
-                onClick={startRouting}
-                style={{
-                    padding: "8px 12px",
-                    background: "#0078db",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                    fontSize: "14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px"
-                }}
-            >
-                📍 Get Directions
-            </button>
-        </div>
-    );
-};
+// Mappls map object
 
 const PropertyDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    // Mappls map object
+    const [mapplsObject, setMapplsObject] = useState(null);
     const [property, setProperty] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -112,6 +26,84 @@ const PropertyDetails = () => {
     const [displayCoordinates, setDisplayCoordinates] = useState(null);
     const [geocodingError, setGeocodingError] = useState(false);
     const [mapType, setMapType] = useState('normal');
+    const [nearbyPlaces, setNearbyPlaces] = useState([]);
+    const [activePlaceType, setActivePlaceType] = useState(null);
+
+    const fetchNearbyPlaces = async (type) => {
+        if (!displayCoordinates) return;
+
+        // If clicking the same type, toggle off
+        if (activePlaceType === type) {
+            setActivePlaceType(null);
+            setNearbyPlaces([]);
+            return;
+        }
+
+        setActivePlaceType(type);
+        setNearbyPlaces([]); // Clear previous
+
+        // Array of Overpass API interpreters to try
+        const interpreters = [
+            "https://overpass-api.de/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter"
+        ];
+
+        let success = false;
+
+        for (const baseUrl of interpreters) {
+            if (success) break;
+
+            try {
+                // Reduced radius to 1500m and added timeout to query
+                const query = `
+                    [out:json][timeout:10];
+                    node(around:1500,${displayCoordinates.lat},${displayCoordinates.lng})[amenity=${type}];
+                    out;
+                `;
+                const url = `${baseUrl}?data=${encodeURIComponent(query)}`;
+
+                console.log(`Fetching ${type} from ${baseUrl}...`);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text();
+                // Check if response is JSON
+                try {
+                    const data = JSON.parse(text);
+                    if (data.elements) {
+                        console.log(`Found ${data.elements.length} ${type}s`);
+                        setNearbyPlaces(data.elements.map(place => ({
+                            lat: place.lat,
+                            lng: place.lon,
+                            name: place.tags.name || `${type.charAt(0).toUpperCase() + type.slice(1)}`,
+                            type: type
+                        })));
+                        success = true;
+                    }
+                } catch (e) {
+                    console.warn(`Response from ${baseUrl} was not JSON:`, text.substring(0, 100));
+                    throw new Error("Invalid JSON response");
+                }
+
+            } catch (error) {
+                console.warn(`Error fetching from ${baseUrl}:`, error);
+                // Continue to next interpreter
+            }
+        }
+
+        if (!success) {
+            alert(`Could not fetch data for ${type}. The map servers might be busy. Please try again later.`);
+            setActivePlaceType(null);
+        }
+    };
 
     useEffect(() => {
         if (!property) return;
@@ -123,7 +115,7 @@ const PropertyDetails = () => {
             });
             setGeocodingError(false);
         } else if (property.address || property.location || property.city) {
-
+            // ... existing geocoding logic ...
             const fetchCoordinates = (searchQuery) => {
                 console.log("Attempting geocode with:", searchQuery);
                 return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`)
@@ -136,7 +128,6 @@ const PropertyDetails = () => {
 
             fetchCoordinates(fullQuery).then(data => {
                 if (data && data.length > 0) {
-                    console.log("Geocode success (Full):", data[0]);
                     setDisplayCoordinates({
                         lat: parseFloat(data[0].lat),
                         lng: parseFloat(data[0].lon)
@@ -149,11 +140,9 @@ const PropertyDetails = () => {
                         setGeocodingError(true);
                         return;
                     }
-                    console.log("Fallback to:", fallbackQuery);
 
                     fetchCoordinates(fallbackQuery).then(fallbackData => {
                         if (fallbackData && fallbackData.length > 0) {
-                            console.log("Geocode success (Fallback):", fallbackData[0]);
                             setDisplayCoordinates({
                                 lat: parseFloat(fallbackData[0].lat),
                                 lng: parseFloat(fallbackData[0].lon)
@@ -166,18 +155,15 @@ const PropertyDetails = () => {
                                 setGeocodingError(true);
                                 return;
                             }
-                            console.log("Fallback to City:", cityQuery);
 
                             fetchCoordinates(cityQuery).then(cityData => {
                                 if (cityData && cityData.length > 0) {
-                                    console.log("Geocode success (City):", cityData[0]);
                                     setDisplayCoordinates({
                                         lat: parseFloat(cityData[0].lat),
                                         lng: parseFloat(cityData[0].lon)
                                     });
                                     setGeocodingError(false);
                                 } else {
-                                    console.log("All geocoding attempts failed");
                                     setGeocodingError(true);
                                 }
                             });
@@ -191,6 +177,82 @@ const PropertyDetails = () => {
                 });
         }
     }, [property]);
+
+    // Initialize MapmyIndia Map
+    useEffect(() => {
+        if (displayCoordinates && !mapplsObject) {
+            const loadMap = () => {
+                const mapProps = {
+                    center: [displayCoordinates.lat, displayCoordinates.lng],
+                    zoom: 15,
+                    draggable: true,
+                    zoomControl: true,
+                    hybrid: true
+                };
+
+                // Initialize mappls
+                // Create an instance of the mappls class
+                const mapplsSDK = new mappls();
+
+                const apiKey = "1a1704953408921857138133b3ba2c10";
+                console.log("Initializing MapmyIndia map with key:", apiKey);
+
+                mapplsSDK.initialize(apiKey, { map: true }, () => {
+                    console.log("MapmyIndia SDK initialized. Creating map...");
+
+                    const initMap = () => {
+                        if (!document.getElementById('map-container')) {
+                            console.warn("Map container not found yet, retrying...");
+                            setTimeout(initMap, 500);
+                            return;
+                        }
+
+                        try {
+                            const map = new mapplsSDK.Map('map-container', mapProps);
+                            console.log("Map instance created:", map);
+
+                            setMapplsObject(map);
+
+                            // Add Property Marker
+                            new mapplsSDK.Marker({
+                                map: map,
+                                position: mapProps.center,
+                                popupHtml: `<div style="padding: 10px; color: #333;"><strong>${property.title}</strong><br/>${property.location}</div>`
+                            });
+
+                            map.mapplsSDK = mapplsSDK;
+                        } catch (e) {
+                            console.error("Error creating map instance:", e);
+                            alert(`Error creating map: ${e.message}\nMake sure your API key handles the domain and the map container exists.`);
+                        }
+                    };
+
+                    // Small delay to ensure render
+                    setTimeout(initMap, 100);
+                });
+            };
+            loadMap();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [displayCoordinates]);
+
+    // Handle Nearby Places on Map
+    useEffect(() => {
+        if (mapplsObject && nearbyPlaces.length > 0) {
+            // Retrieve the SDK instance we attached to the map object
+            const mapplsSDK = mapplsObject.mapplsSDK;
+
+            if (mapplsSDK) {
+                nearbyPlaces.forEach(place => {
+                    new mapplsSDK.Marker({
+                        map: mapplsObject,
+                        position: [place.lat, place.lng],
+                        popupHtml: `<div style="padding: 5px;"><strong>${place.name}</strong><br/>${place.type}</div>`
+                    });
+                });
+            }
+        }
+    }, [nearbyPlaces, mapplsObject]);
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -351,13 +413,7 @@ const PropertyDetails = () => {
                         </div>
                     </div>
 
-                    {/* RERA Status */}
-                    <div style={{ marginTop: "15px", display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ background: "#17a2b8", color: "white", padding: "4px 12px", borderRadius: "4px", fontSize: "13px", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                            <span style={{ fontSize: "16px" }}>ⓘ</span> RERA STATUS
-                        </span>
-                        <span style={{ color: "#666", fontSize: "14px" }}>NOT AVAILABLE</span>
-                    </div>
+
                 </div>
 
                 {/* Tab Navigation */}
@@ -668,6 +724,14 @@ const PropertyDetails = () => {
                                 {mapType === 'normal' ? '🛰️ Satellite' : '🗺️ Map'}
                             </button>
 
+                            {/* Nearby Places Controls */}
+                            <div style={{ background: "white", padding: "5px", borderRadius: "4px", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "5px" }}>
+                                <button onClick={() => fetchNearbyPlaces("school")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "school" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Schools">🏫 Schools</button>
+                                <button onClick={() => fetchNearbyPlaces("hospital")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "hospital" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Hospitals">🏥 Hospitals</button>
+                                <button onClick={() => fetchNearbyPlaces("marketplace")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "marketplace" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Shopping">🛒 Shopping</button>
+                                <button onClick={() => fetchNearbyPlaces("restaurant")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "restaurant" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Restaurants">🍽️ Eat</button>
+                            </div>
+
                             <button
                                 onClick={() => {
                                     // This button is decorative here or acts as a fallback? 
@@ -692,33 +756,10 @@ const PropertyDetails = () => {
                         </div>
 
                         {displayCoordinates ? (
-                            <MapContainer
-                                center={[displayCoordinates.lat, displayCoordinates.lng]}
-                                zoom={15}
-                                key={`${displayCoordinates.lat}-${displayCoordinates.lng}`}
-                                style={{ height: "100%", width: "100%" }}
+                            <div
                                 id="map-container"
-                            >
-                                <TileLayer
-                                    url={mapType === 'normal'
-                                        ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                                    }
-                                    attribution={mapType === 'normal'
-                                        ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                        : 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                                    }
-                                />
-                                <Marker position={[displayCoordinates.lat, displayCoordinates.lng]}>
-                                    <Popup>
-                                        {property.title} <br /> {property.location}
-                                    </Popup>
-                                </Marker>
-
-                                <RoutingControl
-                                    destination={{ lat: displayCoordinates.lat, lng: displayCoordinates.lng }}
-                                />
-                            </MapContainer>
+                                style={{ width: "100%", height: "500px", borderRadius: "12px", border: "1px solid red" }}
+                            ></div>
                         ) : (
                             <div style={{
                                 height: "100%",
@@ -744,7 +785,7 @@ const PropertyDetails = () => {
                 </div>
 
             </div>
-        </div>
+        </div >
     );
 };
 
