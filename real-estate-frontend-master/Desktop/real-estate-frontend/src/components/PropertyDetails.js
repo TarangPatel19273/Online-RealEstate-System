@@ -483,6 +483,9 @@ const PropertyDetails = () => {
                     </div>
                 </div>
 
+                {/* Tab Content Rendering */}
+                {activeTab === "Overview" && (
+                <div>
                 {/* Main Content */}
                 <div style={{ display: "flex", gap: "30px", padding: "30px 40px" }}>
 
@@ -740,6 +743,122 @@ const PropertyDetails = () => {
                         </div>
                     </div>
                 </div>
+                )}
+
+                {/* Owner Details Tab */}
+                {activeTab === "Owner Details" && (
+                <div style={{ padding: "30px 40px", background: "white" }}>
+                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Owner Details</h2>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
+                        <div>
+                            <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "15px", color: "#333" }}>Seller Information</h3>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px" }}>
+                                <div style={{ marginBottom: "15px" }}>
+                                    <strong style={{ color: "#666" }}>Name:</strong>
+                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.sellerUsername || "N/A"}</p>
+                                </div>
+                                <div style={{ marginBottom: "15px" }}>
+                                    <strong style={{ color: "#666" }}>Email:</strong>
+                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.sellerEmail || "N/A"}</p>
+                                </div>
+                                <div style={{ marginBottom: "15px" }}>
+                                    <strong style={{ color: "#666" }}>Phone:</strong>
+                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.contactNumber || "N/A"}</p>
+                                </div>
+                                <div style={{ marginBottom: "15px" }}>
+                                    <strong style={{ color: "#666" }}>User Type:</strong>
+                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.userType || "N/A"}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "15px", color: "#333" }}>Contact Owner</h3>
+                            <button
+                                onClick={() => setShowContact(!showContact)}
+                                style={{
+                                    padding: "12px 24px",
+                                    background: "#0078db",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    fontSize: "16px",
+                                    fontWeight: "600",
+                                    cursor: "pointer",
+                                    marginBottom: "15px",
+                                    width: "100%"
+                                }}
+                            >
+                                {showContact ? "Hide Contact Details" : "Show Contact Details"}
+                            </button>
+                            {showContact && (
+                                <div style={{ padding: "20px", background: "#fffbf0", borderRadius: "8px", border: "1px solid #ffd99b" }}>
+                                    <p style={{ margin: "0 0 10px 0", color: "#333" }}>Best time to reach out:</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                )}
+
+                {/* Featured Dealers Tab */}
+                {activeTab === "Featured Dealers" && (
+                <div style={{ padding: "30px 40px", background: "white" }}>
+                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Featured Dealers</h2>
+                    <div style={{ textAlign: "center", padding: "60px 20px", background: "#f9f9f9", borderRadius: "8px" }}>
+                        <p style={{ fontSize: "18px", color: "#999", margin: "0" }}>No featured dealers available for this property</p>
+                        <p style={{ fontSize: "14px", color: "#ccc", margin: "10px 0 0 0" }}>Featured dealers will appear here once assigned</p>
+                    </div>
+                </div>
+                )}
+
+                {/* Recommendations Tab */}
+                {activeTab === "Recommendations" && (
+                <div style={{ padding: "30px 40px", background: "white" }}>
+                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Recommendations</h2>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
+                            <div style={{ fontSize: "32px", marginBottom: "10px" }}>📍</div>
+                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Location Score</h3>
+                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Well-connected area with good amenities</p>
+                        </div>
+                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
+                            <div style={{ fontSize: "32px", marginBottom: "10px" }}>💰</div>
+                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Price Trend</h3>
+                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Competitive pricing in this locality</p>
+                        </div>
+                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
+                            <div style={{ fontSize: "32px", marginBottom: "10px" }}>🏡</div>
+                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Property Value</h3>
+                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Good investment potential</p>
+                        </div>
+                    </div>
+                </div>
+                )}
+
+                {/* Articles Tab */}
+                {activeTab === "Articles" && (
+                <div style={{ padding: "30px 40px", background: "white" }}>
+                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Articles & Insights</h2>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" }}>
+                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Market Insights</h3>
+                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Understanding the real estate market trends in this location and how to make informed decisions.</p>
+                        </div>
+                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Buying Guide</h3>
+                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Essential tips for buying residential properties and understanding legal requirements.</p>
+                        </div>
+                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Home Investment</h3>
+                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>How to evaluate a property as an investment and calculate returns on investment.</p>
+                        </div>
+                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Legal Aspects</h3>
+                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Important documentation and legal checks required before finalizing a property purchase.</p>
+                        </div>
+                    </div>
+                </div>
+                )}
 
                 {/* Map Section - Always Show */}
                 <div style={{ padding: "30px 40px", background: "white", marginTop: "30px" }}>
