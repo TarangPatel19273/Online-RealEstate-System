@@ -276,16 +276,24 @@ const PropertyDetails = () => {
                                     setMapplsObject(map);
                                     console.log("Map is ready");
 
-                                    // Add property marker if Marker exists
+                                    // Add property marker - use map.addMarker() method
                                     if (property) {
                                         try {
-                                            if (mapplsSDK && mapplsSDK.Marker) {
-                                                const marker = new mapplsSDK.Marker({
+                                            if (typeof map.addMarker === 'function') {
+                                                map.addMarker({
+                                                    position: { lat: displayCoordinates.lat, lng: displayCoordinates.lng },
+                                                    title: property.title || 'Property'
+                                                });
+                                                console.log("Property marker added via addMarker");
+                                            } else if (mapplsSDK.Marker) {
+                                                new mapplsSDK.Marker({
                                                     position: [displayCoordinates.lat, displayCoordinates.lng],
                                                     map: map,
                                                     title: property.title || 'Property'
                                                 });
-                                                console.log("Property marker added successfully");
+                                                console.log("Property marker added via Marker constructor");
+                                            } else {
+                                                console.log("Marker method not available");
                                             }
                                         } catch (e) {
                                             console.warn("Could not add marker:", e.message);
@@ -323,30 +331,34 @@ const PropertyDetails = () => {
             // Retrieve the SDK instance we attached to the map object
             const mapplsSDK = mapplsObject.mapplsSDK;
 
-            if (mapplsSDK && mapplsSDK.Marker) {
-                // Define icons for different place types
-                const placeIcons = {
-                    school: '🏫',
-                    hospital: '🏥',
-                    marketplace: '🛒',
-                    restaurant: '🍽️'
-                };
+            const placeIcons = {
+                school: '🏫',
+                hospital: '🏥',
+                marketplace: '🛒',
+                restaurant: '🍽️'
+            };
 
-                nearbyPlaces.forEach((place, idx) => {
-                    const icon = placeIcons[place.type] || '📍';
-                    try {
+            nearbyPlaces.forEach((place) => {
+                const icon = placeIcons[place.type] || '📍';
+                try {
+                    if (typeof mapplsObject.addMarker === 'function') {
+                        mapplsObject.addMarker({
+                            position: { lat: place.lat, lng: place.lng },
+                            title: `${icon} ${place.name || place.type}`
+                        });
+                    } else if (mapplsSDK && mapplsSDK.Marker) {
                         new mapplsSDK.Marker({
                             position: [place.lat, place.lng],
                             map: mapplsObject,
                             title: `${place.name || place.type}`
                         });
-                    } catch (e) {
-                        console.warn(`Could not add ${place.type} marker:`, e.message);
                     }
-                });
+                } catch (e) {
+                    console.warn(`Could not add ${place.type} marker:`, e.message);
+                }
+            });
 
-                console.log(`Added ${nearbyPlaces.length} nearby place markers`);
-            }
+            console.log(`Added ${nearbyPlaces.length} nearby place markers`);
         }
     }, [nearbyPlaces, mapplsObject]);
 
