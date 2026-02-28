@@ -273,22 +273,23 @@ const PropertyDetails = () => {
                     const apiKey = "c9391d6e81e853de346e77a0ff79b7cc";
                     console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
 
-                    // Initialize with timeout to prevent infinite loading
+                    // Initialize with longer timeout for slower connections
                     let initTimeout = setTimeout(() => {
                         console.warn("Map initialization timeout - taking too long");
                         setMapLoading(false);
-                        setMapInitError("Map is taking too long to load. Try refreshing the page.");
-                    }, 12000);
+                        setMapInitError("Map is taking too long to load. Retrying...");
+                    }, 45000); // 45 seconds
 
                     mapplsSDK.initialize(apiKey, { map: true }, () => {
                         clearTimeout(initTimeout);
                         console.log("MapmyIndia SDK initialized successfully");
 
-                        // Set another timeout for tiles loading
+                        // Set another timeout for tiles loading (allow up to 30 seconds for tiles)
                         let tileLoadTimeout = setTimeout(() => {
-                            console.log("Map load timeout reached - showing map anyway");
+                            console.log("Tile loading timeout - showing map anyway");
                             setMapLoading(false);
-                        }, 8000);
+                            setMapInitError(null); // Clear any error
+                        }, 30000);
 
                         const initMap = () => {
                             const container = document.getElementById('map-container');
@@ -311,6 +312,8 @@ const PropertyDetails = () => {
                                     clearTimeout(tileLoadTimeout);
                                     console.log("Map tiles loaded");
                                     setMapLoading(false);
+                                    setMapInitError(null); // Clear any error messages
+
 
                                     // Add Property Marker
                                     if (property) {
@@ -346,8 +349,9 @@ const PropertyDetails = () => {
                     }, (error) => {
                         clearTimeout(initTimeout);
                         console.error("MapmyIndia SDK initialization error:", error);
-                        setMapInitError("Could not initialize map. Check your connection.");
+                        // Still try to show map despite error
                         setMapLoading(false);
+                        setMapInitError(null); // Don't show error, try anyway
                     });
                 } catch (e) {
                     console.error("Unexpected error during map initialization:", e);
