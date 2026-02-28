@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { mappls } from 'mappls-web-maps';
 import "./PropertyDetails.css";
 
 import Navbar from "./Navbar";
@@ -33,6 +32,30 @@ const PropertyDetails = () => {
     const [activePlaceType, setActivePlaceType] = useState(null);
     const [mapLoading, setMapLoading] = useState(true);
     const [mapInitError, setMapInitError] = useState(null);
+
+    // Load MapmyIndia SDK from CDN
+    useEffect(() => {
+        // Check if SDK already loaded
+        if (window.mappls) {
+            console.log("MapmyIndia SDK already loaded");
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://apis.mappls.com/web-sdk/mappls.js';
+        script.async = true;
+        script.onload = () => {
+            console.log("MapmyIndia SDK loaded from CDN");
+        };
+        script.onerror = () => {
+            console.warn("Failed to load MapmyIndia SDK from CDN");
+        };
+        document.head.appendChild(script);
+
+        return () => {
+            // Cleanup if needed
+        };
+    }, []);
 
     const fetchNearbyPlaces = async (type) => {
         if (!displayCoordinates) return;
@@ -200,15 +223,42 @@ const PropertyDetails = () => {
                 };
 
                 try {
-                    // Create an instance of the mappls class
+                    // Check if mappls is available globally or from package
+                    let mappls;
+                    if (typeof window !== 'undefined' && window.mappls) {
+                        mappls = window.mappls;
+                    } else {
+                        // Try to require from npm package
+                        try {
+                            const mapplsModule = require('mappls-web-maps');
+                            mappls = mapplsModule.mappls;
+                        } catch (err) {
+                            throw new Error("MapmyIndia SDK not loaded. Please refresh the page.");
+                        }
+                    }
+
                     const mapplsSDK = new mappls();
 
                     // MapmyIndia API Key
                     const apiKey = "1a1704953408921857138133b3ba2c10";
                     console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
 
+                    // Initialize with timeout to prevent infinite loading
+                    let initTimeout = setTimeout(() => {
+                        console.warn("Map initialization timeout - taking too long");
+                        setMapLoading(false);
+                        setMapInitError("Map is taking too long to load. Try refreshing the page.");
+                    }, 12000);
+
                     mapplsSDK.initialize(apiKey, { map: true }, () => {
+                        clearTimeout(initTimeout);
                         console.log("MapmyIndia SDK initialized successfully");
+
+                        // Set another timeout for tiles loading
+                        let tileLoadTimeout = setTimeout(() => {
+                            console.log("Map load timeout reached - showing map anyway");
+                            setMapLoading(false);
+                        }, 8000);
 
                         const initMap = () => {
                             const container = document.getElementById('map-container');
@@ -228,31 +278,35 @@ const PropertyDetails = () => {
 
                                 // Wait for map to fully load
                                 map.on('load', () => {
+                                    clearTimeout(tileLoadTimeout);
                                     console.log("Map tiles loaded");
                                     setMapLoading(false);
 
                                     // Add Property Marker
-                                    const marker = new mapplsSDK.Marker({
-                                        map: map,
-                                        position: mapProps.center,
-                                        popupHtml: `<div style="padding: 10px; color: #333; font-family: Arial, sans-serif;"><strong>${property?.title || 'Property'}</strong><br/><span style="color: #666; font-size: 12px;">${property?.location || 'Location'}</span></div>`
-                                    });
-
-                                    marker.openPopup();
+                                    if (property) {
+                                        const marker = new mapplsSDK.Marker({
+                                            map: map,
+                                            position: mapProps.center,
+                                            popupHtml: `<div style="padding: 10px; color: #333; font-family: Arial, sans-serif;"><strong>${property.title || 'Property'}</strong><br/><span style="color: #666; font-size: 12px;">${property.location || 'Location'}</span></div>`
+                                        });
+                                        marker.openPopup();
+                                    }
                                 });
 
                                 // Handle map errors
                                 map.on('error', (err) => {
+                                    clearTimeout(tileLoadTimeout);
                                     console.error("Map error:", err);
-                                    setMapInitError("Failed to load map tiles. Please check your internet connection.");
+                                    setMapInitError("Failed to load map tiles.");
                                     setMapLoading(false);
                                 });
 
                                 setMapplsObject(map);
                                 map.mapplsSDK = mapplsSDK;
                             } catch (e) {
+                                clearTimeout(tileLoadTimeout);
                                 console.error("Error creating map instance:", e);
-                                setMapInitError(`Map initialization failed: ${e.message}`);
+                                setMapInitError(`Error: ${e.message}`);
                                 setMapLoading(false);
                             }
                         };
@@ -260,13 +314,14 @@ const PropertyDetails = () => {
                         // Small delay to ensure render
                         setTimeout(initMap, 100);
                     }, (error) => {
+                        clearTimeout(initTimeout);
                         console.error("MapmyIndia SDK initialization error:", error);
-                        setMapInitError(`API initialization failed: ${error?.message || 'Unknown error'}. Please verify your API key.`);
+                        setMapInitError("Could not initialize map. Check your connection.");
                         setMapLoading(false);
                     });
                 } catch (e) {
                     console.error("Unexpected error during map initialization:", e);
-                    setMapInitError(`Unexpected error: ${e.message}`);
+                    setMapInitError(e.message);
                     setMapLoading(false);
                 }
             };
