@@ -262,13 +262,11 @@ const PropertyDetails = () => {
 
                                 console.log("Creating map with SDK:", mapplsSDK);
                                 
-                                // Create map with minimal options
+                                // Create map with coordinates object format
                                 const map = new mapplsSDK.Map({
                                     container: 'map-container',
-                                    center: [displayCoordinates.lat, displayCoordinates.lng],
-                                    zoom: 15,
-                                    stroke: true,
-                                    hybrid: true
+                                    center: { lat: displayCoordinates.lat, lng: displayCoordinates.lng },
+                                    zoom: 15
                                 });
 
                                 console.log("Map instance created");
@@ -280,19 +278,21 @@ const PropertyDetails = () => {
                                     console.log("Map is ready");
 
                                     // Add property marker
-                                    if (property && mapplsSDK.Marker) {
+                                    if (property) {
                                         try {
-                                            new mapplsSDK.Marker({
-                                                map: map,
-                                                position: [displayCoordinates.lat, displayCoordinates.lng],
-                                                title: property.title || 'Property'
-                                            });
-                                            console.log("Property marker added");
+                                            if (mapplsSDK.Marker) {
+                                                new mapplsSDK.Marker({
+                                                    map: map,
+                                                    position: { lat: displayCoordinates.lat, lng: displayCoordinates.lng },
+                                                    title: property.title || 'Property'
+                                                });
+                                                console.log("Property marker added");
+                                            }
                                         } catch (e) {
                                             console.warn("Could not add marker:", e);
                                         }
                                     }
-                                }, 500);
+                                }, 300);
 
                                 map.mapplsSDK = mapplsSDK;
 
@@ -324,7 +324,7 @@ const PropertyDetails = () => {
             // Retrieve the SDK instance we attached to the map object
             const mapplsSDK = mapplsObject.mapplsSDK;
 
-            if (mapplsSDK) {
+            if (mapplsSDK && mapplsSDK.Marker) {
                 // Define icons for different place types
                 const placeIcons = {
                     school: '🏫',
@@ -335,18 +335,27 @@ const PropertyDetails = () => {
 
                 nearbyPlaces.forEach((place, idx) => {
                     const icon = placeIcons[place.type] || '📍';
-                    new mapplsSDK.Marker({
-                        map: mapplsObject,
-                        position: [place.lat, place.lng],
-                        popupHtml: `<div style="padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"><div style="font-size: 18px; margin-bottom: 5px;">${icon}</div><strong style="color: #333; font-size: 14px;">${place.name || place.type}</strong><br/><span style="color: #999; font-size: 12px;">${place.type.charAt(0).toUpperCase() + place.type.slice(1)}</span></div>`,
-                        title: `${place.name || place.type} (${place.type})`
-                    });
+                    try {
+                        new mapplsSDK.Marker({
+                            map: mapplsObject,
+                            position: { lat: place.lat, lng: place.lng },
+                            title: `${place.name || place.type} (${icon})`
+                        });
+                    } catch (e) {
+                        console.warn(`Could not add ${place.type} marker:`, e);
+                    }
                 });
 
-                // Center map around first place if multiple results
+                // Center map around places if multiple results
                 if (nearbyPlaces.length > 1) {
-                    const bounds = nearbyPlaces.map(p => [p.lat, p.lng]);
-                    mapplsObject.fitBounds(bounds);
+                    try {
+                        const bounds = nearbyPlaces.map(p => ({ lat: p.lat, lng: p.lng }));
+                        if (mapplsObject.fitBounds) {
+                            mapplsObject.fitBounds(bounds);
+                        }
+                    } catch (e) {
+                        console.warn("Could not fit bounds:", e);
+                    }
                 }
             }
         }
