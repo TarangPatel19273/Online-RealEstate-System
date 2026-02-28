@@ -246,13 +246,29 @@ const PropertyDetails = () => {
             const mapplsSDK = mapplsObject.mapplsSDK;
 
             if (mapplsSDK) {
-                nearbyPlaces.forEach(place => {
+                // Define icons for different place types
+                const placeIcons = {
+                    school: '🏫',
+                    hospital: '🏥',
+                    marketplace: '🛒',
+                    restaurant: '🍽️'
+                };
+
+                nearbyPlaces.forEach((place, idx) => {
+                    const icon = placeIcons[place.type] || '📍';
                     new mapplsSDK.Marker({
                         map: mapplsObject,
                         position: [place.lat, place.lng],
-                        popupHtml: `<div style="padding: 5px;"><strong>${place.name}</strong><br/>${place.type}</div>`
+                        popupHtml: `<div style="padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"><div style="font-size: 18px; margin-bottom: 5px;">${icon}</div><strong style="color: #333; font-size: 14px;">${place.name || place.type}</strong><br/><span style="color: #999; font-size: 12px;">${place.type.charAt(0).toUpperCase() + place.type.slice(1)}</span></div>`,
+                        title: `${place.name || place.type} (${place.type})`
                     });
                 });
+
+                // Center map around first place if multiple results
+                if (nearbyPlaces.length > 1) {
+                    const bounds = nearbyPlaces.map(p => [p.lat, p.lng]);
+                    mapplsObject.fitBounds(bounds);
+                }
             }
         }
     }, [nearbyPlaces, mapplsObject]);
@@ -864,64 +880,119 @@ const PropertyDetails = () => {
 
                 {/* Map Section - Always Show */}
                 <div style={{ padding: "30px 40px", background: "white", marginTop: "30px" }}>
-                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "20px", color: "#333" }}>Location Map</h2>
-                    <div style={{ height: "400px", borderRadius: "12px", overflow: "hidden", border: "1px solid #e0e0e0", position: "relative" }}>
-                        {/* Map Toggle Button */}
-                        <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 1000, display: "flex", flexDirection: "column", gap: "10px" }}>
-                            <button
-                                onClick={() => setMapType(prev => prev === 'normal' ? 'satellite' : 'normal')}
-                                style={{
-                                    padding: "8px 12px",
-                                    background: "white",
-                                    border: "2px solid rgba(0,0,0,0.2)",
-                                    borderRadius: "4px",
-                                    cursor: "pointer",
-                                    fontWeight: "bold",
-                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                    fontSize: "14px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "5px"
-                                }}
-                            >
-                                {mapType === 'normal' ? '🛰️ Satellite' : '🗺️ Map'}
-                            </button>
-
-                            {/* Nearby Places Controls */}
-                            <div style={{ background: "white", padding: "5px", borderRadius: "4px", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "5px" }}>
-                                <button onClick={() => fetchNearbyPlaces("school")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "school" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Schools">🏫 Schools</button>
-                                <button onClick={() => fetchNearbyPlaces("hospital")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "hospital" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Hospitals">🏥 Hospitals</button>
-                                <button onClick={() => fetchNearbyPlaces("marketplace")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "marketplace" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Shopping">🛒 Shopping</button>
-                                <button onClick={() => fetchNearbyPlaces("restaurant")} style={{ padding: "5px 10px", border: "none", background: activePlaceType === "restaurant" ? "#e0e0e0" : "white", cursor: "pointer", fontSize: "14px", textAlign: "left" }} title="Show Restaurants">🍽️ Eat</button>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                        <h2 style={{ fontSize: "24px", fontWeight: "700", margin: "0", color: "#333" }}>📍 Location Map</h2>
+                        <div style={{ fontSize: "12px", color: "#999" }}>
+                            {nearbyPlaces.length > 0 && `${nearbyPlaces.length} ${activePlaceType}s found nearby`}
+                        </div>
+                    </div>
+                    <div style={{ height: "500px", borderRadius: "12px", overflow: "hidden", border: "1px solid #ddd", position: "relative", background: "#f0f0f0", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}>
+                        {/* Map Controls */}
+                        <div style={{ position: "absolute", top: "15px", right: "15px", zIndex: 1000, display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {/* Nearby Places Controls - Enhanced */}
+                            <div style={{ background: "white", padding: "8px", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: "3px" }}>
+                                <button
+                                    onClick={() => fetchNearbyPlaces("school")}
+                                    style={{
+                                        padding: "8px 12px",
+                                        border: "none",
+                                        background: activePlaceType === "school" ? "#0078db" : "#f5f5f5",
+                                        color: activePlaceType === "school" ? "white" : "#333",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: activePlaceType === "school" ? "600" : "500",
+                                        borderRadius: "4px",
+                                        transition: "all 0.2s",
+                                        textAlign: "left"
+                                    }}
+                                    title="Search for nearby schools"
+                                >
+                                    🏫 Schools
+                                </button>
+                                <button
+                                    onClick={() => fetchNearbyPlaces("hospital")}
+                                    style={{
+                                        padding: "8px 12px",
+                                        border: "none",
+                                        background: activePlaceType === "hospital" ? "#0078db" : "#f5f5f5",
+                                        color: activePlaceType === "hospital" ? "white" : "#333",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: activePlaceType === "hospital" ? "600" : "500",
+                                        borderRadius: "4px",
+                                        transition: "all 0.2s",
+                                        textAlign: "left"
+                                    }}
+                                    title="Search for nearby hospitals"
+                                >
+                                    🏥 Hospitals
+                                </button>
+                                <button
+                                    onClick={() => fetchNearbyPlaces("marketplace")}
+                                    style={{
+                                        padding: "8px 12px",
+                                        border: "none",
+                                        background: activePlaceType === "marketplace" ? "#0078db" : "#f5f5f5",
+                                        color: activePlaceType === "marketplace" ? "white" : "#333",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: activePlaceType === "marketplace" ? "600" : "500",
+                                        borderRadius: "4px",
+                                        transition: "all 0.2s",
+                                        textAlign: "left"
+                                    }}
+                                    title="Search for shopping centers"
+                                >
+                                    🛒 Shopping
+                                </button>
+                                <button
+                                    onClick={() => fetchNearbyPlaces("restaurant")}
+                                    style={{
+                                        padding: "8px 12px",
+                                        border: "none",
+                                        background: activePlaceType === "restaurant" ? "#0078db" : "#f5f5f5",
+                                        color: activePlaceType === "restaurant" ? "white" : "#333",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: activePlaceType === "restaurant" ? "600" : "500",
+                                        borderRadius: "4px",
+                                        transition: "all 0.2s",
+                                        textAlign: "left"
+                                    }}
+                                    title="Search for restaurants"
+                                >
+                                    🍽️ Restaurants
+                                </button>
+                                {activePlaceType && (
+                                    <button
+                                        onClick={() => {
+                                            setActivePlaceType(null);
+                                            setNearbyPlaces([]);
+                                        }}
+                                        style={{
+                                            padding: "6px 10px",
+                                            border: "none",
+                                            background: "#ff6b6b",
+                                            color: "white",
+                                            cursor: "pointer",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            borderRadius: "4px",
+                                            transition: "all 0.2s",
+                                            marginTop: "2px"
+                                        }}
+                                        title="Clear filters"
+                                    >
+                                        ✕ Clear
+                                    </button>
+                                )}
                             </div>
-
-                            <button
-                                onClick={() => {
-                                    // This button is decorative here or acts as a fallback? 
-                                    // Actually, looking at the code, I see THREE buttons.
-                                    // 1. Satellite toggle
-                                    // 2. The button I am removing (lines 705-735)
-                                    // 3. The button INSIDE RoutingControl (which is inside MapContainer)
-
-                                    // The user previously wanted "Get Directions".
-                                    // If I look at the previous `view_file` output:
-                                    // Lines 111-131: The button INSIDE RoutingControl.
-                                    // Lines 705-735: A "Get Directions" button inside `PropertyDetails` that does nothing useful (unused vars).
-
-                                    // Implementation strategy:
-                                    // The `RoutingControl` component ALREADY renders a "Get Directions" button (lines 111-131).
-                                    // So this outer button at 705 is DUPLICATE and BROKEN/UNUSED.
-                                    // I should REMOVE this entire button block.
-                                }}
-                                style={{ display: 'none' }}
-                            >
-                            </button>
                         </div>
 
                         {displayCoordinates ? (
                             <div
                                 id="map-container"
-                                style={{ width: "100%", height: "500px", borderRadius: "12px", border: "1px solid red" }}
+                                style={{ width: "100%", height: "100%", borderRadius: "12px" }}
                             ></div>
                         ) : (
                             <div style={{
@@ -945,6 +1016,24 @@ const PropertyDetails = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Location Stats */}
+                    {displayCoordinates && (
+                        <div style={{ marginTop: "20px", padding: "15px", background: "#f5f5f5", borderRadius: "8px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px" }}>
+                            <div style={{ textAlign: "center", padding: "10px" }}>
+                                <div style={{ fontSize: "24px", marginBottom: "5px" }}>📍</div>
+                                <div style={{ fontSize: "12px", color: "#999", marginBottom: "3px" }}>Coordinates</div>
+                                <div style={{ fontSize: "13px", fontWeight: "600", color: "#333" }}>{displayCoordinates.lat.toFixed(4)}, {displayCoordinates.lng.toFixed(4)}</div>
+                            </div>
+                            {activePlaceType && (
+                                <div style={{ textAlign: "center", padding: "10px" }}>
+                                    <div style={{ fontSize: "24px", marginBottom: "5px" }}>📍</div>
+                                    <div style={{ fontSize: "12px", color: "#999", marginBottom: "3px" }}>{activePlaceType.charAt(0).toUpperCase() + activePlaceType.slice(1)}</div>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#333" }}>{nearbyPlaces.length} locations found</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
             </div>
