@@ -240,7 +240,7 @@ const PropertyDetails = () => {
                     const mapplsSDK = new mappls();
 
                     // MapmyIndia API Key
-                    const apiKey = "1a1704953408921857138133b3ba2c10";
+                    const apiKey = "c9391d6e81e853de346e77a0ff79b7cc";
                     console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
 
                     // Initialize with timeout to prevent infinite loading
