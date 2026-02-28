@@ -8,7 +8,9 @@ import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
 import EMICalculator from "./EMICalculator";
 
-// Mappls map object
+// Import MapmyIndia from npm package
+import mappls from 'mappls-web-maps';
+import 'mappls-web-maps/dist/mappls.css';
 
 const PropertyDetails = () => {
     const { id } = useParams();
@@ -32,25 +34,9 @@ const PropertyDetails = () => {
     const [mapLoading, setMapLoading] = useState(true);
     const [mapInitError, setMapInitError] = useState(null);
 
-    // Load MapmyIndia SDK from CDN
+    // Load MapmyIndia SDK from npm package (already imported above)
     useEffect(() => {
-        // Check if SDK already loaded
-        if (window.mappls) {
-            console.log("MapmyIndia SDK already loaded");
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://apis.mappls.com/web-sdk/mappls.js';
-        script.async = true;
-        script.onload = () => {
-            console.log("MapmyIndia SDK loaded from CDN");
-        };
-        script.onerror = () => {
-            console.warn("Failed to load MapmyIndia SDK from CDN");
-        };
-        document.head.appendChild(script);
-
+        console.log("MapmyIndia SDK ready (imported from npm package)");
         return () => {
             // Cleanup if needed
         };
@@ -253,20 +239,6 @@ const PropertyDetails = () => {
                 };
 
                 try {
-                    // Check if mappls is available globally or from package
-                    let mappls;
-                    if (typeof window !== 'undefined' && window.mappls) {
-                        mappls = window.mappls;
-                    } else {
-                        // Try to require from npm package
-                        try {
-                            const mapplsModule = require('mappls-web-maps');
-                            mappls = mapplsModule.mappls;
-                        } catch (err) {
-                            throw new Error("MapmyIndia SDK not loaded. Please refresh the page.");
-                        }
-                    }
-
                     const mapplsSDK = new mappls();
 
                     // MapmyIndia API Key
