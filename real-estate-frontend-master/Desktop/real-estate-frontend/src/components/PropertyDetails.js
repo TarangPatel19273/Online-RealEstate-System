@@ -229,7 +229,6 @@ const PropertyDetails = () => {
 
             const loadMap = () => {
                 try {
-                    // Ensure mappls is available
                     if (!mappls) {
                         console.error("MapmyIndia SDK not available");
                         setMapInitError("MapmyIndia SDK not loaded");
@@ -242,18 +241,15 @@ const PropertyDetails = () => {
                     
                     console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
 
-                    // Initialize SDK first
-                    mapplsSDK.initialize(apiKey, { map: false }, (initSuccess) => {
+                    // Try initialization without map: false option
+                    mapplsSDK.initialize(apiKey, {}, (initSuccess) => {
+                        console.log("MapmyIndia initialization callback - success:", initSuccess);
+                        
                         if (!initSuccess) {
-                            console.error("MapmyIndia SDK initialization failed");
-                            setMapLoading(false);
-                            setMapInitError("Failed to initialize MapmyIndia");
-                            return;
+                            console.error("SDK initialization returned false, but continuing anyway");
                         }
 
-                        console.log("MapmyIndia SDK initialized");
-
-                        // Now create the map
+                        // Create map regardless of SDK init result
                         setTimeout(() => {
                             try {
                                 const container = document.getElementById('map-container');
@@ -264,44 +260,49 @@ const PropertyDetails = () => {
                                     return;
                                 }
 
-                                // Create map object
-                                const mapObj = {
+                                console.log("Creating map with SDK:", mapplsSDK);
+                                
+                                // Create map with minimal options
+                                const map = new mapplsSDK.Map({
                                     container: 'map-container',
                                     center: [displayCoordinates.lat, displayCoordinates.lng],
-                                    zoom: 15
-                                };
+                                    zoom: 15,
+                                    stroke: true,
+                                    hybrid: true
+                                });
 
-                                const map = new mapplsSDK.Map(mapObj);
+                                console.log("Map instance created");
+                                
+                                // Wait a moment for map to render
+                                setTimeout(() => {
+                                    setMapLoading(false);
+                                    setMapplsObject(map);
+                                    console.log("Map is ready");
 
-                                // Set loading complete
-                                setMapLoading(false);
-                                setMapplsObject(map);
-                                console.log("Map created successfully");
+                                    // Add property marker
+                                    if (property && mapplsSDK.Marker) {
+                                        try {
+                                            new mapplsSDK.Marker({
+                                                map: map,
+                                                position: [displayCoordinates.lat, displayCoordinates.lng],
+                                                title: property.title || 'Property'
+                                            });
+                                            console.log("Property marker added");
+                                        } catch (e) {
+                                            console.warn("Could not add marker:", e);
+                                        }
+                                    }
+                                }, 500);
 
-                                // Add property marker
-                                if (property) {
-                                    const marker = new mapplsSDK.Marker({
-                                        map: map,
-                                        position: [displayCoordinates.lat, displayCoordinates.lng],
-                                        title: property.title || 'Property'
-                                    });
-                                    map.marker = marker;
-                                }
-
-                                // Store SDK reference
                                 map.mapplsSDK = mapplsSDK;
 
                             } catch (e) {
                                 console.error("Error creating map:", e);
-                                setMapInitError(`Error: ${e.message}`);
+                                setMapInitError(`Map Error: ${e.message}`);
                                 setMapLoading(false);
                             }
-                        }, 300);
+                        }, 500);
 
-                    }, (initError) => {
-                        console.error("MapmyIndia initialization error:", initError);
-                        setMapLoading(false);
-                        setMapInitError("Failed to initialize map");
                     });
 
                 } catch (e) {
@@ -311,8 +312,8 @@ const PropertyDetails = () => {
                 }
             };
 
-            // Wait a bit for DOM to be ready
-            setTimeout(loadMap, 200);
+            // Wait for DOM to be ready
+            setTimeout(loadMap, 300);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displayCoordinates]);
