@@ -27,7 +27,6 @@ const PropertyDetails = () => {
     const [wishlistLoading, setWishlistLoading] = useState(false);
     const [displayCoordinates, setDisplayCoordinates] = useState(null);
     const [geocodingError, setGeocodingError] = useState(false);
-    const [mapType, setMapType] = useState('normal');
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
     const [activePlaceType, setActivePlaceType] = useState(null);
     const [mapLoading, setMapLoading] = useState(true);
@@ -143,11 +142,22 @@ const PropertyDetails = () => {
             });
             setGeocodingError(false);
         } else if (property.address || property.location || property.city) {
-            // ... existing geocoding logic ...
+            // Geocoding logic with error handling
             const fetchCoordinates = (searchQuery) => {
                 console.log("Attempting geocode with:", searchQuery);
-                return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`)
-                    .then(res => res.json());
+                return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`, {
+                    headers: {
+                        'User-Agent': 'RealEstateApp/1.0'
+                    }
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        return res.json();
+                    })
+                    .catch(err => {
+                        console.warn("Geocoding fetch error:", err);
+                        return [];
+                    });
             };
 
             // Strategy: Try specific -> General
