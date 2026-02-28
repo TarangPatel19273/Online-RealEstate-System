@@ -33,9 +33,9 @@ const PropertyDetails = () => {
     const [mapLoading, setMapLoading] = useState(true);
     const [mapInitError, setMapInitError] = useState(null);
 
-    // Load MapmyIndia SDK from npm package (already imported above)
+    // Load Leaflet map when coordinates are available
     useEffect(() => {
-        console.log("MapmyIndia SDK ready (imported from npm package)");
+        console.log("Leaflet map library ready");
         return () => {
             // Cleanup if needed
         };
@@ -228,110 +228,90 @@ const PropertyDetails = () => {
             setMapInitError(null);
 
             const loadMap = () => {
-                const mapProps = {
-                    center: [displayCoordinates.lat, displayCoordinates.lng],
-                    zoom: 15,
-                    draggable: true,
-                    zoomControl: true,
-                    hybrid: true,
-                    tileLayer: true
-                };
-
                 try {
-                    const mapplsSDK = new mappls();
+                    // Ensure mappls is available
+                    if (!mappls) {
+                        console.error("MapmyIndia SDK not available");
+                        setMapInitError("MapmyIndia SDK not loaded");
+                        setMapLoading(false);
+                        return;
+                    }
 
-                    // MapmyIndia API Key
+                    const mapplsSDK = new mappls();
                     const apiKey = "c9391d6e81e853de346e77a0ff79b7cc";
+                    
                     console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
 
-                    // Initialize with longer timeout for slower connections
-                    let initTimeout = setTimeout(() => {
-                        console.warn("Map initialization timeout - taking too long");
-                        setMapLoading(false);
-                        setMapInitError("Map is taking too long to load. Retrying...");
-                    }, 45000); // 45 seconds
-
-                    mapplsSDK.initialize(apiKey, { map: true }, () => {
-                        clearTimeout(initTimeout);
-                        console.log("MapmyIndia SDK initialized successfully");
-
-                        // Set another timeout for tiles loading (allow up to 30 seconds for tiles)
-                        let tileLoadTimeout = setTimeout(() => {
-                            console.log("Tile loading timeout - showing map anyway");
+                    // Initialize SDK first
+                    mapplsSDK.initialize(apiKey, { map: false }, (initSuccess) => {
+                        if (!initSuccess) {
+                            console.error("MapmyIndia SDK initialization failed");
                             setMapLoading(false);
-                            setMapInitError(null); // Clear any error
-                        }, 30000);
+                            setMapInitError("Failed to initialize MapmyIndia");
+                            return;
+                        }
 
-                        const initMap = () => {
-                            const container = document.getElementById('map-container');
-                            if (!container) {
-                                console.warn("Map container not found, retrying...");
-                                setTimeout(initMap, 500);
-                                return;
-                            }
+                        console.log("MapmyIndia SDK initialized");
 
+                        // Now create the map
+                        setTimeout(() => {
                             try {
-                                // Ensure container has proper dimensions
-                                container.style.width = "100%";
-                                container.style.height = "100%";
-
-                                const map = new mapplsSDK.Map('map-container', mapProps);
-                                console.log("Map instance created successfully");
-
-                                // Wait for map to fully load
-                                map.on('load', () => {
-                                    clearTimeout(tileLoadTimeout);
-                                    console.log("Map tiles loaded");
+                                const container = document.getElementById('map-container');
+                                if (!container) {
+                                    console.error("Map container not found");
+                                    setMapInitError("Map container not found");
                                     setMapLoading(false);
-                                    setMapInitError(null); // Clear any error messages
+                                    return;
+                                }
 
+                                // Create map object
+                                const mapObj = {
+                                    container: 'map-container',
+                                    center: [displayCoordinates.lat, displayCoordinates.lng],
+                                    zoom: 15
+                                };
 
-                                    // Add Property Marker
-                                    if (property) {
-                                        const marker = new mapplsSDK.Marker({
-                                            map: map,
-                                            position: mapProps.center,
-                                            popupHtml: `<div style="padding: 10px; color: #333; font-family: Arial, sans-serif;"><strong>${property.title || 'Property'}</strong><br/><span style="color: #666; font-size: 12px;">${property.location || 'Location'}</span></div>`
-                                        });
-                                        marker.openPopup();
-                                    }
-                                });
+                                const map = new mapplsSDK.Map(mapObj);
 
-                                // Handle map errors
-                                map.on('error', (err) => {
-                                    clearTimeout(tileLoadTimeout);
-                                    console.error("Map error:", err);
-                                    setMapInitError("Failed to load map tiles.");
-                                    setMapLoading(false);
-                                });
-
+                                // Set loading complete
+                                setMapLoading(false);
                                 setMapplsObject(map);
+                                console.log("Map created successfully");
+
+                                // Add property marker
+                                if (property) {
+                                    const marker = new mapplsSDK.Marker({
+                                        map: map,
+                                        position: [displayCoordinates.lat, displayCoordinates.lng],
+                                        title: property.title || 'Property'
+                                    });
+                                    map.marker = marker;
+                                }
+
+                                // Store SDK reference
                                 map.mapplsSDK = mapplsSDK;
+
                             } catch (e) {
-                                clearTimeout(tileLoadTimeout);
-                                console.error("Error creating map instance:", e);
+                                console.error("Error creating map:", e);
                                 setMapInitError(`Error: ${e.message}`);
                                 setMapLoading(false);
                             }
-                        };
+                        }, 300);
 
-                        // Small delay to ensure render
-                        setTimeout(initMap, 100);
-                    }, (error) => {
-                        clearTimeout(initTimeout);
-                        console.error("MapmyIndia SDK initialization error:", error);
-                        // Still try to show map despite error
+                    }, (initError) => {
+                        console.error("MapmyIndia initialization error:", initError);
                         setMapLoading(false);
-                        setMapInitError(null); // Don't show error, try anyway
+                        setMapInitError("Failed to initialize map");
                     });
+
                 } catch (e) {
-                    console.error("Unexpected error during map initialization:", e);
+                    console.error("Unexpected error:", e);
                     setMapInitError(e.message);
                     setMapLoading(false);
                 }
             };
 
-            // Small delay for DOM to be ready
+            // Wait a bit for DOM to be ready
             setTimeout(loadMap, 200);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
