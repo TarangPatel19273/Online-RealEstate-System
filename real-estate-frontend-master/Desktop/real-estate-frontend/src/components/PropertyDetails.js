@@ -8,9 +8,8 @@ import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
 import EMICalculator from "./EMICalculator";
 
-// Import MapmyIndia from npm package
-import mappls from 'mappls-web-maps';
-import 'mappls-web-maps/dist/mappls.css';
+// Import MapmyIndia from npm package (named export)
+import { mappls } from 'mappls-web-maps';
 
 const PropertyDetails = () => {
     const { id } = useParams();
