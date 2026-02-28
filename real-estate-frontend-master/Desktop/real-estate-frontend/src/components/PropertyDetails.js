@@ -241,9 +241,9 @@ const PropertyDetails = () => {
                     
                     console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
 
-                    // Initialize with container ID in options
-                    mapplsSDK.initialize(apiKey, { container: 'map-container' }, () => {
-                        console.log("MapmyIndia SDK initialized");
+                    // Initialize WITHOUT container - just authenticate the API key
+                    mapplsSDK.initialize(apiKey, {}, () => {
+                        console.log("MapmyIndia SDK authenticated");
 
                         setTimeout(() => {
                             try {
@@ -255,20 +255,37 @@ const PropertyDetails = () => {
                                     return;
                                 }
 
-                                // Create map instance
-                                const map = new mapplsSDK.Map('map-container', {
+                                console.log("Creating map on container with center:", displayCoordinates);
+                                
+                                // Create map instance with explicit container ID
+                                const map = new mapplsSDK.Map({
+                                    container: 'map-container',
                                     center: [displayCoordinates.lat, displayCoordinates.lng],
                                     zoom: 15,
-                                    zoomControl: true,
-                                    fullscreenControl: false
+                                    tileLayer: true,
+                                    clickableOption: true
                                 });
 
-                                console.log("✓ Map instance created and rendered");
+                                console.log("✓ Map instance created successfully");
                                 
-                                setMapLoading(false);
+                                // Add event listeners
+                                map.on('load', () => {
+                                    console.log("✓ Map tiles loaded - map ready!");
+                                    setMapLoading(false);
+                                });
+
+                                map.on('error', (err) => {
+                                    console.error("Map error event:", err);
+                                });
+
                                 setMapplsObject(map);
                                 map.mapplsSDK = mapplsSDK;
-                                console.log("✓ Map ready and fully functional");
+                                
+                                // Set loading done after a moment
+                                setTimeout(() => {
+                                    setMapLoading(false);
+                                    console.log("✓ Map display complete");
+                                }, 2000);
 
                             } catch (e) {
                                 console.error("Error creating map:", e.message);
