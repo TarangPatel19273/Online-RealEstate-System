@@ -57,6 +57,47 @@ const DocumentsInfo = () => {
         color: '#444'
     };
 
+    const sampleDocumentStyle = {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '20px',
+        marginTop: '30px',
+        paddingTop: '30px',
+        borderTop: '2px solid #eee'
+    };
+
+    const documentCardStyle = {
+        border: '1px solid #ddd',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        transition: 'transform 0.3s, box-shadow 0.3s',
+        cursor: 'pointer'
+    };
+
+    const documentCardHoverStyle = {
+        transform: 'translateY(-5px)',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+    };
+
+    const documentImageStyle = {
+        width: '100%',
+        height: '200px',
+        backgroundColor: '#f0f0f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '16px',
+        fontWeight: 'bold',
+        color: '#999'
+    };
+
+    const documentNameStyle = {
+        padding: '15px',
+        backgroundColor: '#fff',
+        borderTop: '1px solid #eee'
+    };
+
     return (
         <div>
             <Navbar />
@@ -111,6 +152,65 @@ const DocumentsInfo = () => {
                                     </p>
                                 </li>
                             </ul>
+
+                            {/* Sample Documents Section */}
+                            <div>
+                                <h3 style={{ ...sectionTitleStyle, marginTop: '30px' }}>📋 Sample Documents</h3>
+                                <p style={{ color: '#666', marginBottom: '20px' }}>Below are visual samples of the required agricultural documents:</p>
+                                <div style={sampleDocumentStyle}>
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>7/12 Extract</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>7/12 Extract (Satbara)</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Ownership Proof</p>
+                                        </div>
+                                    </div>
+
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>8A Extract</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>8A Extract</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Land Holding Details</p>
+                                        </div>
+                                    </div>
+
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>Farfar</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>Farfar (Mutation)</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Transfer History</p>
+                                        </div>
+                                    </div>
+
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>6/12 Extract</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>6/12 Extract</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Hakka Japtri Patrak</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div>
@@ -147,6 +247,78 @@ const DocumentsInfo = () => {
                                     </p>
                                 </li>
                             </ul>
+
+                            {/* Sample Documents Section */}
+                            <div>
+                                <h3 style={{ ...sectionTitleStyle, marginTop: '30px' }}>📋 Sample Documents</h3>
+                                <p style={{ color: '#666', marginBottom: '20px' }}>Below are visual samples of the required residential property documents:</p>
+                                <div style={sampleDocumentStyle}>
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>Sale Deed</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>Sale Deed / Index 2</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Ownership Proof</p>
+                                        </div>
+                                    </div>
+
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>NA Order</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>NA Order</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Land Conversion</p>
+                                        </div>
+                                    </div>
+
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>Share Certificate</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>Share Certificate</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Society Ownership</p>
+                                        </div>
+                                    </div>
+
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>NOC</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>NOC Certificate</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>No Dues</p>
+                                        </div>
+                                    </div>
+
+                                    <div style={documentCardStyle}>
+                                        <div style={documentImageStyle}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📄</div>
+                                                <div>Tax Receipt</div>
+                                            </div>
+                                        </div>
+                                        <div style={documentNameStyle}>
+                                            <p style={{ margin: '0', fontWeight: '600', color: '#333' }}>Property Tax Receipt</p>
+                                            <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>Tax Payment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
