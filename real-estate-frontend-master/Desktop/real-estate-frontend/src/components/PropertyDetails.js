@@ -135,6 +135,9 @@ const PropertyDetails = () => {
     useEffect(() => {
         if (!property) return;
 
+        // Default fallback location (India Center)
+        const DEFAULT_FALLBACK = { lat: 20.5937, lng: 78.9629 };
+
         if (property.latitude && property.longitude) {
             setDisplayCoordinates({
                 lat: parseFloat(property.latitude),
@@ -160,7 +163,7 @@ const PropertyDetails = () => {
                     });
             };
 
-            // Strategy: Try specific -> General
+            // Strategy: Try specific -> General -> Fallback
             // 1. Full address
             const fullQuery = [property.address, property.location, property.city, property.state].filter(Boolean).join(", ");
 
@@ -175,7 +178,10 @@ const PropertyDetails = () => {
                     // 2. Fallback: Location + City + State
                     const fallbackQuery = [property.location, property.city, property.state].filter(Boolean).join(", ");
                     if (fallbackQuery === fullQuery || !fallbackQuery) {
-                        setGeocodingError(true);
+                        // Use default location instead of showing error
+                        console.warn("All geocoding attempts failed. Using default fallback location.");
+                        setDisplayCoordinates(DEFAULT_FALLBACK);
+                        setGeocodingError(false);
                         return;
                     }
 
@@ -190,7 +196,10 @@ const PropertyDetails = () => {
                             // 3. Fallback: City + State
                             const cityQuery = [property.city, property.state].filter(Boolean).join(", ");
                             if (cityQuery === fallbackQuery || !cityQuery) {
-                                setGeocodingError(true);
+                                // Use default location instead of showing error
+                                console.warn("All geocoding attempts failed. Using default fallback location.");
+                                setDisplayCoordinates(DEFAULT_FALLBACK);
+                                setGeocodingError(false);
                                 return;
                             }
 
@@ -202,7 +211,10 @@ const PropertyDetails = () => {
                                     });
                                     setGeocodingError(false);
                                 } else {
-                                    setGeocodingError(true);
+                                    // Final fallback: Use default location
+                                    console.warn("Geocoding failed. Using default fallback location.");
+                                    setDisplayCoordinates(DEFAULT_FALLBACK);
+                                    setGeocodingError(false);
                                 }
                             });
                         }
@@ -211,8 +223,16 @@ const PropertyDetails = () => {
             })
                 .catch(err => {
                     console.error("Geocoding error:", err);
-                    setGeocodingError(true);
+                    // Use default fallback location instead of showing error
+                    console.warn("Using default fallback location due to geocoding error.");
+                    setDisplayCoordinates(DEFAULT_FALLBACK);
+                    setGeocodingError(false);
                 });
+        } else {
+            // No address data available, use default location
+            console.warn("No address data available. Using default fallback location.");
+            setDisplayCoordinates(DEFAULT_FALLBACK);
+            setGeocodingError(false);
         }
     }, [property]);
 
