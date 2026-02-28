@@ -262,10 +262,9 @@ const PropertyDetails = () => {
 
                                 console.log("Creating map with SDK:", mapplsSDK);
                                 
-                                // Create map with coordinates object format
-                                const map = new mapplsSDK.Map({
-                                    container: 'map-container',
-                                    center: { lat: displayCoordinates.lat, lng: displayCoordinates.lng },
+                                // Create map - pass container ID as first argument
+                                const map = new mapplsSDK.Map('map-container', {
+                                    center: [displayCoordinates.lat, displayCoordinates.lng],
                                     zoom: 15
                                 });
 
@@ -277,19 +276,19 @@ const PropertyDetails = () => {
                                     setMapplsObject(map);
                                     console.log("Map is ready");
 
-                                    // Add property marker
+                                    // Add property marker if Marker exists
                                     if (property) {
                                         try {
-                                            if (mapplsSDK.Marker) {
-                                                new mapplsSDK.Marker({
+                                            if (mapplsSDK && mapplsSDK.Marker) {
+                                                const marker = new mapplsSDK.Marker({
+                                                    position: [displayCoordinates.lat, displayCoordinates.lng],
                                                     map: map,
-                                                    position: { lat: displayCoordinates.lat, lng: displayCoordinates.lng },
                                                     title: property.title || 'Property'
                                                 });
-                                                console.log("Property marker added");
+                                                console.log("Property marker added successfully");
                                             }
                                         } catch (e) {
-                                            console.warn("Could not add marker:", e);
+                                            console.warn("Could not add marker:", e.message);
                                         }
                                     }
                                 }, 300);
@@ -297,7 +296,7 @@ const PropertyDetails = () => {
                                 map.mapplsSDK = mapplsSDK;
 
                             } catch (e) {
-                                console.error("Error creating map:", e);
+                                console.error("Error creating map:", e.message);
                                 setMapInitError(`Map Error: ${e.message}`);
                                 setMapLoading(false);
                             }
@@ -337,26 +336,16 @@ const PropertyDetails = () => {
                     const icon = placeIcons[place.type] || '📍';
                     try {
                         new mapplsSDK.Marker({
+                            position: [place.lat, place.lng],
                             map: mapplsObject,
-                            position: { lat: place.lat, lng: place.lng },
-                            title: `${place.name || place.type} (${icon})`
+                            title: `${place.name || place.type}`
                         });
                     } catch (e) {
-                        console.warn(`Could not add ${place.type} marker:`, e);
+                        console.warn(`Could not add ${place.type} marker:`, e.message);
                     }
                 });
 
-                // Center map around places if multiple results
-                if (nearbyPlaces.length > 1) {
-                    try {
-                        const bounds = nearbyPlaces.map(p => ({ lat: p.lat, lng: p.lng }));
-                        if (mapplsObject.fitBounds) {
-                            mapplsObject.fitBounds(bounds);
-                        }
-                    } catch (e) {
-                        console.warn("Could not fit bounds:", e);
-                    }
-                }
+                console.log(`Added ${nearbyPlaces.length} nearby place markers`);
             }
         }
     }, [nearbyPlaces, mapplsObject]);
