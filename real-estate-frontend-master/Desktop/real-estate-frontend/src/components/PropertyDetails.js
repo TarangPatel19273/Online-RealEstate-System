@@ -743,6 +743,8 @@ const PropertyDetails = () => {
                         </div>
                     </div>
                 </div>
+
+                </div>
                 )}
 
                 {/* Owner Details Tab */}
