@@ -31,6 +31,8 @@ const PropertyDetails = () => {
     const [mapType, setMapType] = useState('normal');
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
     const [activePlaceType, setActivePlaceType] = useState(null);
+    const [mapLoading, setMapLoading] = useState(true);
+    const [mapInitError, setMapInitError] = useState(null);
 
     const fetchNearbyPlaces = async (type) => {
         if (!displayCoordinates) return;
@@ -184,57 +186,93 @@ const PropertyDetails = () => {
     // Initialize MapmyIndia Map
     useEffect(() => {
         if (displayCoordinates && !mapplsObject) {
+            setMapLoading(true);
+            setMapInitError(null);
+
             const loadMap = () => {
                 const mapProps = {
                     center: [displayCoordinates.lat, displayCoordinates.lng],
                     zoom: 15,
                     draggable: true,
                     zoomControl: true,
-                    hybrid: true
+                    hybrid: true,
+                    tileLayer: true
                 };
 
-                // Initialize mappls
-                // Create an instance of the mappls class
-                const mapplsSDK = new mappls();
+                try {
+                    // Create an instance of the mappls class
+                    const mapplsSDK = new mappls();
 
-                const apiKey = "1a1704953408921857138133b3ba2c10";
-                console.log("Initializing MapmyIndia map with key:", apiKey);
+                    // MapmyIndia API Key
+                    const apiKey = "1a1704953408921857138133b3ba2c10";
+                    console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
 
-                mapplsSDK.initialize(apiKey, { map: true }, () => {
-                    console.log("MapmyIndia SDK initialized. Creating map...");
+                    mapplsSDK.initialize(apiKey, { map: true }, () => {
+                        console.log("MapmyIndia SDK initialized successfully");
 
-                    const initMap = () => {
-                        if (!document.getElementById('map-container')) {
-                            console.warn("Map container not found yet, retrying...");
-                            setTimeout(initMap, 500);
-                            return;
-                        }
+                        const initMap = () => {
+                            const container = document.getElementById('map-container');
+                            if (!container) {
+                                console.warn("Map container not found, retrying...");
+                                setTimeout(initMap, 500);
+                                return;
+                            }
 
-                        try {
-                            const map = new mapplsSDK.Map('map-container', mapProps);
-                            console.log("Map instance created:", map);
+                            try {
+                                // Ensure container has proper dimensions
+                                container.style.width = "100%";
+                                container.style.height = "100%";
 
-                            setMapplsObject(map);
+                                const map = new mapplsSDK.Map('map-container', mapProps);
+                                console.log("Map instance created successfully");
 
-                            // Add Property Marker
-                            new mapplsSDK.Marker({
-                                map: map,
-                                position: mapProps.center,
-                                popupHtml: `<div style="padding: 10px; color: #333;"><strong>${property.title}</strong><br/>${property.location}</div>`
-                            });
+                                // Wait for map to fully load
+                                map.on('load', () => {
+                                    console.log("Map tiles loaded");
+                                    setMapLoading(false);
 
-                            map.mapplsSDK = mapplsSDK;
-                        } catch (e) {
-                            console.error("Error creating map instance:", e);
-                            alert(`Error creating map: ${e.message}\nMake sure your API key handles the domain and the map container exists.`);
-                        }
-                    };
+                                    // Add Property Marker
+                                    const marker = new mapplsSDK.Marker({
+                                        map: map,
+                                        position: mapProps.center,
+                                        popupHtml: `<div style="padding: 10px; color: #333; font-family: Arial, sans-serif;"><strong>${property?.title || 'Property'}</strong><br/><span style="color: #666; font-size: 12px;">${property?.location || 'Location'}</span></div>`
+                                    });
 
-                    // Small delay to ensure render
-                    setTimeout(initMap, 100);
-                });
+                                    marker.openPopup();
+                                });
+
+                                // Handle map errors
+                                map.on('error', (err) => {
+                                    console.error("Map error:", err);
+                                    setMapInitError("Failed to load map tiles. Please check your internet connection.");
+                                    setMapLoading(false);
+                                });
+
+                                setMapplsObject(map);
+                                map.mapplsSDK = mapplsSDK;
+                            } catch (e) {
+                                console.error("Error creating map instance:", e);
+                                setMapInitError(`Map initialization failed: ${e.message}`);
+                                setMapLoading(false);
+                            }
+                        };
+
+                        // Small delay to ensure render
+                        setTimeout(initMap, 100);
+                    }, (error) => {
+                        console.error("MapmyIndia SDK initialization error:", error);
+                        setMapInitError(`API initialization failed: ${error?.message || 'Unknown error'}. Please verify your API key.`);
+                        setMapLoading(false);
+                    });
+                } catch (e) {
+                    console.error("Unexpected error during map initialization:", e);
+                    setMapInitError(`Unexpected error: ${e.message}`);
+                    setMapLoading(false);
+                }
             };
-            loadMap();
+
+            // Small delay for DOM to be ready
+            setTimeout(loadMap, 200);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displayCoordinates]);
@@ -990,10 +1028,35 @@ const PropertyDetails = () => {
                         </div>
 
                         {displayCoordinates ? (
-                            <div
-                                id="map-container"
-                                style={{ width: "100%", height: "100%", borderRadius: "12px" }}
-                            ></div>
+                            <>
+                                <div
+                                    id="map-container"
+                                    style={{ width: "100%", height: "100%", borderRadius: "12px", background: "#e8f0f7" }}
+                                ></div>
+
+                                {mapLoading && (
+                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "12px", zIndex: 100 }}>
+                                        <div style={{ background: "white", padding: "30px", borderRadius: "12px", textAlign: "center", boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}>
+                                            <div style={{ fontSize: "32px", marginBottom: "15px" }}>🗺️</div>
+                                            <h3 style={{ margin: "0 0 10px 0", color: "#333" }}>Loading Map</h3>
+                                            <p style={{ margin: "0", color: "#999", fontSize: "14px" }}>Initializing MapmyIndia...</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {mapInitError && (
+                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "12px", zIndex: 100 }}>
+                                        <div style={{ background: "white", padding: "30px", borderRadius: "12px", textAlign: "center", maxWidth: "400px", boxShadow: "0 8px 24px rgba(0,0,0,0.3)" }}>
+                                            <div style={{ fontSize: "40px", marginBottom: "15px" }}>⚠️</div>
+                                            <h3 style={{ margin: "0 0 10px 0", color: "#d32f2f" }}>Map Error</h3>
+                                            <p style={{ margin: "0 0 15px 0", color: "#666", fontSize: "14px" }}>{mapInitError}</p>
+                                            <div style={{ padding: "15px", background: "#f5f5f5", borderRadius: "8px", textAlign: "left", fontSize: "12px", color: "#666" }}>
+                                                <strong>Location:</strong> {displayCoordinates.lat.toFixed(4)}, {displayCoordinates.lng.toFixed(4)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div style={{
                                 height: "100%",
