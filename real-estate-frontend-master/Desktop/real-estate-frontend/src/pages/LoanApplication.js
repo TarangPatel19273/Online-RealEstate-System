@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { API_BASE } from "../config";
 import "./LoanApplication.css";
 
 const LoanApplication = () => {
@@ -14,17 +15,25 @@ const LoanApplication = () => {
         employmentType: "Salaried",
         annualIncome: "",
         propertyCity: "",
-        message: ""
+        message: "",
+        tenureYears: "20",
+        panNumber: ""
     });
+    const [documentFile, setDocumentFile] = useState(null);
+    const [propertyId, setPropertyId] = useState(null);
     const [submitted, setSubmitted] = useState(false);
 
     useEffect(() => {
         // Pre-fill loan amount if passed from EMI Calculator
-        if (location.state && location.state.loanAmount) {
+        if (location.state) {
             setFormData(prev => ({
                 ...prev,
-                loanAmount: location.state.loanAmount
+                loanAmount: location.state.loanAmount || prev.loanAmount,
+                propertyCity: location.state.propertyCity || prev.propertyCity
             }));
+            if (location.state.propertyId) {
+                setPropertyId(location.state.propertyId);
+            }
         }
     }, [location.state]);
 
@@ -36,17 +45,40 @@ const LoanApplication = () => {
         }));
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setDocumentFile(e.target.files[0]);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:8080/api/loans/apply", {
+            const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+            const submitData = new FormData();
+            Object.keys(formData).forEach(key => {
+                submitData.append(key, formData[key]);
+            });
+
+            if (storedUser.id) {
+                submitData.append("userId", storedUser.id);
+            }
+            if (propertyId) {
+                submitData.append("propertyId", propertyId);
+            }
+            if (documentFile) {
+                submitData.append("document", documentFile);
+            }
+
+            const response = await fetch(`${API_BASE}/api/loans/apply`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
+                    // Do NOT set Content-Type header when using FormData; the browser sets it with the correct boundary
                 },
-                body: JSON.stringify(formData),
+                body: submitData,
             });
 
             if (response.ok) {
@@ -168,6 +200,49 @@ const LoanApplication = () => {
                                     onChange={handleChange}
                                     required
                                     placeholder="Enter annual income"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>PAN Number</label>
+                                <input
+                                    type="text"
+                                    name="panNumber"
+                                    value={formData.panNumber}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Enter PAN"
+                                    maxLength="10"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Tenure (Years)</label>
+                                <select
+                                    name="tenureYears"
+                                    value={formData.tenureYears}
+                                    onChange={handleChange}
+                                >
+                                    <option value="5">5 Years</option>
+                                    <option value="10">10 Years</option>
+                                    <option value="15">15 Years</option>
+                                    <option value="20">20 Years</option>
+                                    <option value="25">25 Years</option>
+                                    <option value="30">30 Years</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group" style={{ width: "100%" }}>
+                                <label>Upload Supporting Document (e.g. Salary Slip, Bank Statement)</label>
+                                <input
+                                    type="file"
+                                    name="document"
+                                    onChange={handleFileChange}
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    required
                                 />
                             </div>
                         </div>

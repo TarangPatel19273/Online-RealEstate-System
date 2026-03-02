@@ -4,6 +4,15 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Log full error details; "Script error." usually means the browser hid the real error (e.g. cross-origin)
+window.onerror = function (message, source, lineno, colno, error) {
+  console.error("[window.onerror]", { message, source, lineno, colno, error: error?.stack || error });
+  return false;
+};
+window.onunhandledrejection = function (event) {
+  console.error("[unhandledrejection]", event.reason);
+};
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

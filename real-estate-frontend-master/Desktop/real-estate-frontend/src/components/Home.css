@@ -46,54 +46,108 @@
   opacity: 0.9;
 }
 
-/* SEARCH BAR IN HERO */
+/* 99ACRES SEARCH BAR */
 .hero-search-container {
-  background: rgba(0, 0, 0, 0.6);
-  padding: 20px;
-  border-radius: 8px;
-  backdrop-filter: blur(4px);
+  background: transparent;
+  padding: 0;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .search-tabs {
   display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
-  justify-content: center;
+  gap: 15px;
+  margin-bottom: 0;
+  justify-content: flex-start;
+  padding-left: 20px;
 }
 
 .search-tab {
   cursor: pointer;
   font-weight: 600;
-  padding-bottom: 4px;
-  border-bottom: 2px solid transparent;
+  padding: 12px 20px;
   transition: all 0.2s;
-  color: #ddd;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-bottom: none;
 }
 
 .search-tab.active {
-  color: white;
-  border-bottom-color: #0078db;
+  color: #333;
+  background: white;
 }
 
-.hero-search-bar {
+.acres-search-bar {
   display: flex;
-  gap: 8px;
+  background: white;
+  border-radius: 8px;
+  border-top-left-radius: 0;
+  height: 60px;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  padding: 0 6px 0 0;
 }
 
-.search-input-wrapper {
-  flex: 1;
+.search-dropdown.city-select {
+  padding: 0 20px;
+  font-weight: 600;
+  color: #333;
   display: flex;
   align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  color: #666;
+}
+
+.city-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 10px;
   background: white;
-  border-radius: 4px;
-  padding: 0 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.search-icon {
-  margin-right: 8px;
+.city-option {
+  padding: 12px 20px;
+  color: #333;
+  font-size: 14px;
+  transition: background 0.2s;
 }
 
-.search-input-wrapper input {
+.city-option:hover {
+  background: #f3f4f6;
+  color: #0078db;
+}
+
+.search-divider {
+  width: 1px;
+  height: 30px;
+  background-color: #ddd;
+}
+
+.acres-search-bar .search-input-wrapper {
+  flex: 1;
+  background: transparent;
+  padding: 0 15px;
+}
+
+.acres-search-bar .search-input-wrapper input {
   border: none;
   outline: none;
   width: 100%;
@@ -102,19 +156,29 @@
   color: #333;
 }
 
-.hero-search-btn {
+.acres-search-btn {
   background-color: #0078db;
   color: white;
   border: none;
-  padding: 0 32px;
+  height: 48px;
+  padding: 0 24px;
   font-size: 16px;
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
 }
 
-.hero-search-btn:hover {
+.acres-search-btn:hover {
   background-color: #005ca8;
+}
+
+.acres-search-btn .search-icon {
+  font-size: 16px;
+  margin: 0;
 }
 
 /* CONTENT CONTAINER */

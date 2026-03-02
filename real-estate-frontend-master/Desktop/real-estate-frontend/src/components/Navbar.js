@@ -48,7 +48,7 @@ function Navbar() {
   useEffect(() => {
     if (user && user.id && isAuthenticated) {
       loadUnreadCount();
-      
+
       // Set up WebSocket connection to listen for new messages
       if (!chatService.isConnected) {
         chatService.connect(
@@ -96,10 +96,10 @@ function Navbar() {
       setLoadingConversations(true);
       const response = await axiosConfig.get(`/chat/conversations/${user.id}`);
       const messages = response.data || [];
-      
+
       // Extract unique senders (buyers who sent messages to this seller)
       const uniqueUsers = new Map();
-      
+
       messages.forEach(msg => {
         // If current user is receiver, then sender is the one who contacted them
         if (msg.receiverId === user.id) {
@@ -207,8 +207,8 @@ function Navbar() {
                   <div className="notification-dropdown">
                     <div className="notification-header">
                       <h3>Messages</h3>
-                      <button 
-                        className="close-btn" 
+                      <button
+                        className="close-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           setIsNotificationOpen(false);
@@ -217,7 +217,7 @@ function Navbar() {
                         ✕
                       </button>
                     </div>
-                    
+
                     {loadingConversations ? (
                       <div className="notification-loading">Loading...</div>
                     ) : conversations.length === 0 ? (
@@ -227,7 +227,7 @@ function Navbar() {
                     ) : (
                       <div className="conversation-list">
                         {conversations.map((conversation) => (
-                          <div 
+                          <div
                             key={`${conversation.userId}-${conversation.propertyId}`}
                             className="conversation-item"
                             onClick={() => handleUserClick(conversation)}
@@ -255,29 +255,35 @@ function Navbar() {
                 onMouseEnter={() => setIsDropdownOpen(true)}
                 onMouseLeave={() => setIsDropdownOpen(false)}
               >
-              <div className="user-icon-wrapper" onClick={handleProfileClick}>
-                <div className="user-icon-circle">
-                  {user ? user.username?.charAt(0).toUpperCase() : "U"}
+                <div className="user-icon-wrapper" onClick={handleProfileClick}>
+                  <div className="user-icon-circle">
+                    {user ? user.username?.charAt(0).toUpperCase() : "U"}
+                  </div>
                 </div>
-              </div>
 
-              {isDropdownOpen && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-item" onClick={() => { navigate("/profile"); setIsDropdownOpen(false); }}>
-                    <span>👤</span> My Profile
+                {isDropdownOpen && (
+                  <div className="dropdown-menu">
+                    <div className="dropdown-item" onClick={() => { navigate("/profile"); setIsDropdownOpen(false); }}>
+                      <span>👤</span> My Profile
+                    </div>
+                    <div className="dropdown-item" onClick={() => { navigate("/my-properties"); setIsDropdownOpen(false); }}>
+                      <span>📊</span> My Dashboard
+                    </div>
+                    <div className="dropdown-item" onClick={() => { navigate("/my-visits"); setIsDropdownOpen(false); }}>
+                      <span>📅</span> My Visits
+                    </div>
+                    <div className="dropdown-item" onClick={() => { navigate("/my-loans"); setIsDropdownOpen(false); }}>
+                      <span>🏦</span> My Loans
+                    </div>
+                    <div className="dropdown-item" onClick={() => { navigate("/wishlist"); setIsDropdownOpen(false); }}>
+                      <span>♥️</span> Wishlist
+                    </div>
+                    <div className="dropdown-divider"></div>
+                    <div className="dropdown-item logout-item" onClick={handleLogout}>
+                      <span>🚪</span> Logout
+                    </div>
                   </div>
-                  <div className="dropdown-item" onClick={() => { navigate("/my-properties"); setIsDropdownOpen(false); }}>
-                    <span>📊</span> My Dashboard
-                  </div>
-                  <div className="dropdown-item" onClick={() => { navigate("/wishlist"); setIsDropdownOpen(false); }}>
-                    <span>♥️</span> Wishlist
-                  </div>
-                  <div className="dropdown-divider"></div>
-                  <div className="dropdown-item logout-item" onClick={handleLogout}>
-                    <span>🚪</span> Logout
-                  </div>
-                </div>
-              )}
+                )}
               </div>
             </>
           ) : (

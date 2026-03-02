@@ -6,7 +6,9 @@ import com.realestate.onlinerealestate.dto.UserProfileResponse;
 import com.realestate.onlinerealestate.dto.UserUpdateRequest;
 import com.realestate.onlinerealestate.model.User;
 import com.realestate.onlinerealestate.repository.UserRepository;
+import org.springframework.lang.NonNull;
 import java.util.Optional;
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -17,7 +19,8 @@ public class UserService {
     /**
      * Get user profile by ID
      */
-    public UserProfileResponse getUserProfile(Long userId) {
+    public UserProfileResponse getUserProfile(@NonNull Long userId) {
+        Objects.requireNonNull(userId, "userId cannot be null");
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
             return convertToProfileResponse(user.get());
@@ -28,7 +31,10 @@ public class UserService {
     /**
      * Update user profile (all fields except email)
      */
-    public UserProfileResponse updateUserProfile(Long userId, UserUpdateRequest updateRequest) {
+    public UserProfileResponse updateUserProfile(@NonNull Long userId, @NonNull UserUpdateRequest updateRequest) {
+        Objects.requireNonNull(userId, "userId cannot be null");
+        Objects.requireNonNull(updateRequest, "updateRequest cannot be null");
+
         Optional<User> optionalUser = userRepository.findById(userId);
         if (!optionalUser.isPresent()) {
             throw new IllegalArgumentException("User not found with ID: " + userId);
@@ -62,18 +68,18 @@ public class UserService {
     /**
      * Convert User entity to UserProfileResponse DTO
      */
-    private UserProfileResponse convertToProfileResponse(User user) {
+    private UserProfileResponse convertToProfileResponse(@NonNull User user) {
+        Objects.requireNonNull(user, "user cannot be null");
         return new UserProfileResponse(
-            user.getId(),
-            user.getUsername(),
-            user.getEmail(),
-            user.getFullName(),
-            user.getMobileNumber(),
-            user.getProfilePicture(),
-            user.getBio(),
-            user.getCity(),
-            user.getState(),
-            user.isEmailVerified()
-        );
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getMobileNumber(),
+                user.getProfilePicture(),
+                user.getBio(),
+                user.getCity(),
+                user.getState(),
+                user.isEmailVerified());
     }
 }

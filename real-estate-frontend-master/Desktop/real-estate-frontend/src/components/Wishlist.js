@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import wishlistService from "../services/wishlistService";
 import propertyService from "../services/propertyService";
+import { PLACEHOLDER_IMAGE, API_BASE } from "../config";
 
 const Wishlist = () => {
     const navigate = useNavigate();
@@ -149,8 +150,8 @@ const Wishlist = () => {
                     }}>
                         {wishlistItems.map((property) => {
                             const firstImage = property.imageUrls && property.imageUrls.length > 0
-                                ? `http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[0])}`
-                                : 'https://via.placeholder.com/400x300?text=No+Image';
+                                ? `${API_BASE}/api/properties/images/${encodeURIComponent(property.imageUrls[0])}`
+                                : PLACEHOLDER_IMAGE;
 
                             return (
                                 <div
@@ -220,7 +221,12 @@ const Wishlist = () => {
                                                 objectFit: "cover"
                                             }}
                                             onError={(e) => {
-                                                e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
+                                                try {
+                                                    const t = e?.target;
+                                                    if (t && typeof t.setAttribute === "function") {
+                                                        t.setAttribute("src", PLACEHOLDER_IMAGE);
+                                                    }
+                                                } catch (_) {}
                                             }}
                                         />
                                     </div>

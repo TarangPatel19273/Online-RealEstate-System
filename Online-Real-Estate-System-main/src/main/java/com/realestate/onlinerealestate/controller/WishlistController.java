@@ -24,7 +24,7 @@ import com.realestate.onlinerealestate.security.JwtUtil;
 
 @RestController
 @RequestMapping("/api/wishlist")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class WishlistController {
 
     private final WishlistRepository wishlistRepository;

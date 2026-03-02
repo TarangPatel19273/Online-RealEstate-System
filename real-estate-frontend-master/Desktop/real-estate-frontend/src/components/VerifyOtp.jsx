@@ -14,6 +14,7 @@ function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
   const email = location.state?.email;
+  const isAdmin = location.state?.isAdmin;
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -78,7 +79,7 @@ function VerifyOtp() {
       setLoading(true);
       setError("");
 
-      await authService.verifyOtp(email, otpCode);
+      await authService.verifyOtp(email, otpCode, isAdmin);
 
       // Navigate to login page after successful verification
       navigate("/login", { state: { message: "Account verified successfully! Please login." } });
@@ -109,7 +110,7 @@ function VerifyOtp() {
           <div className="illustration-icon">🔐</div>
           <h1 className="illustration-title">EstateHub</h1>
           <p className="illustration-subtitle">Your trusted real estate partner</p>
-          
+
           <div className="feature-list">
             <div className="feature-item">
               <span className="feature-icon">✨</span>

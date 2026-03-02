@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import propertyService from "../services/propertyService";
 import Navbar from "./Navbar";
+import { PLACEHOLDER_IMAGE_SMALL, API_BASE } from "../config";
 import "./Compare.css";
 
 const Compare = () => {
@@ -62,10 +63,18 @@ const Compare = () => {
                                         <div className="header-image-wrapper">
                                             <img
                                                 src={p.imageUrls && p.imageUrls.length > 0
-                                                    ? `http://localhost:8080/api/properties/images/${encodeURIComponent(p.imageUrls[0])}`
-                                                    : "https://via.placeholder.com/150?text=No+Image"}
+                                                    ? `${API_BASE}/api/properties/images/${encodeURIComponent(p.imageUrls[0])}`
+                                                    : PLACEHOLDER_IMAGE_SMALL}
                                                 alt={p.title}
                                                 className="header-image"
+                                                onError={(e) => {
+                                                    try {
+                                                        const t = e?.target;
+                                                        if (t && typeof t.setAttribute === "function") {
+                                                            t.setAttribute("src", PLACEHOLDER_IMAGE_SMALL);
+                                                        }
+                                                    } catch (_) {}
+                                                }}
                                             />
                                             <span className="header-title">{p.title}</span>
                                             <span className="header-price">₹{p.price}</span>

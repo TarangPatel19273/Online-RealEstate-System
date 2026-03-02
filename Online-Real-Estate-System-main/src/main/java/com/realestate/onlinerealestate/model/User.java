@@ -48,7 +48,14 @@ public class User {
     @Column(length = 100)
     private String state;
 
-    public User() {}
+    @Column(length = 20)
+    private String role = "USER"; // USER, AGENT, ADMIN
+
+    @Column(columnDefinition = "boolean default false", nullable = true)
+    private Boolean blocked = false;
+
+    public User() {
+    }
 
     public Long getId() {
         return id;
@@ -144,5 +151,21 @@ public class User {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public boolean isBlocked() {
+        return blocked != null && blocked;
+    }
+
+    public void setBlocked(boolean blocked) {
+        this.blocked = blocked;
     }
 }

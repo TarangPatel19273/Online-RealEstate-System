@@ -32,13 +32,17 @@ function ForgotPassword() {
 
       setIsSubmitted(true);
       setMessage("OTP sent successfully! Please check your email.");
-      
+
       // Navigate to verify OTP page for password reset
       setTimeout(() => {
         navigate("/verify-password-otp", { state: { email, isPasswordReset: true } });
       }, 1500);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Failed to send OTP. Please try again.");
+      if (typeof err.response?.data === "string") {
+        setMessage(err.response.data);
+      } else {
+        setMessage(err.response?.data?.message || "Failed to send OTP. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -52,7 +56,7 @@ function ForgotPassword() {
           <div className="illustration-icon">🏠</div>
           <h1 className="illustration-title">EstateHub</h1>
           <p className="illustration-subtitle">Your trusted real estate partner</p>
-          
+
           <div className="feature-list">
             <div className="feature-item">
               <span className="feature-icon">✨</span>
@@ -92,7 +96,7 @@ function ForgotPassword() {
       {/* Right Side - Form */}
       <div className="auth-form-section">
         <div className="form-container">
-          <button 
+          <button
             className="back-button"
             onClick={() => navigate("/login")}
             style={{
@@ -113,19 +117,19 @@ function ForgotPassword() {
             <p className="form-subtitle">Enter your email address to reset your password</p>
           </div>
 
-          <form 
-            className="auth-form" 
+          <form
+            className="auth-form"
             onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }}
           >
             <div className="form-group">
               <label className="form-label">Email Address</label>
               <div className="input-field">
                 <span className="input-icon-left">✉️</span>
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  placeholder="john@example.com" 
-                  value={email} 
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="john@example.com"
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   autoComplete="email"
@@ -133,9 +137,9 @@ function ForgotPassword() {
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              className="submit-button" 
+            <button
+              type="submit"
+              className="submit-button"
               disabled={loading}
             >
               <div className="button-content">

@@ -9,9 +9,14 @@ export const login = (data) => {
   return axiosInstance.post(`/api/auth/login`, data);
 };
 
+// Google Login
+export const googleLogin = (credential) => {
+  return axiosInstance.post(`/api/auth/google`, { token: credential });
+};
+
 // Verify OTP → Get JWT
-export const verifyOtp = (email, otp) => {
-  return axiosInstance.post(`/api/auth/verify-otp`, { email, otp });
+export const verifyOtp = (email, otp, isAdmin = false) => {
+  return axiosInstance.post(`/api/auth/verify-otp`, { email, otp, adminRecord: isAdmin });
 };
 
 // Forgot Password → Send OTP to email

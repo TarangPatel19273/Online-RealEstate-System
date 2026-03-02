@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import propertyService, { deleteProperty, updateProperty } from "../services/propertyService";
 import Navbar from "./Navbar";
 import { useNavigate } from "react-router-dom";
+import { API_BASE, PLACEHOLDER_IMAGE } from "../config";
 
 const MyProperties = () => {
   const navigate = useNavigate();
@@ -225,7 +226,7 @@ const MyProperties = () => {
                 {hasImages ? (
                   <div style={{ position: "relative", marginBottom: "10px" }}>
                     <img
-                      src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
+                      src={`${API_BASE}/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
                       alt={property.title}
                       style={{
                         width: "100%",
@@ -234,7 +235,12 @@ const MyProperties = () => {
                         borderRadius: "6px"
                       }}
                       onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
+                        try {
+                          const t = e?.target;
+                          if (t && typeof t.setAttribute === "function") {
+                            t.setAttribute("src", PLACEHOLDER_IMAGE);
+                          }
+                        } catch (_) {}
                       }}
                     />
 
@@ -562,7 +568,7 @@ const MyProperties = () => {
                           {editData.currentImages.map((img, index) => (
                             <div key={index} style={{ position: "relative" }}>
                               <img
-                                src={`http://localhost:8080/api/properties/images/${encodeURIComponent(img)}`}
+                                src={`${API_BASE}/api/properties/images/${encodeURIComponent(img)}`}
                                 alt="property"
                                 style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "4px" }}
                               />

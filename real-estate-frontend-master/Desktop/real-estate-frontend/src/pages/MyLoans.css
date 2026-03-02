@@ -1,0 +1,174 @@
+.my-loans-page {
+    background-color: #f8fafc;
+    min-height: 100vh;
+}
+
+.my-loans-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.my-loans-container h2 {
+    color: #1e293b;
+    margin-bottom: 30px;
+    font-size: 28px;
+}
+
+.loan-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.loan-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.loan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.loan-header h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 22px;
+}
+
+.badge-pending {
+    background-color: #fef3c7;
+    color: #d97706;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.badge-approved {
+    background-color: #dcfce7;
+    color: #15803d;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.badge-rejected {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.loan-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.loan-details p {
+    margin: 0;
+    color: #475569;
+}
+
+.admin-remarks {
+    background-color: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3b82f6;
+}
+
+.admin-remarks p {
+    margin: 0;
+    color: #334155;
+}
+
+.bank-details-form {
+    background-color: #f0fdf4;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #bbf7d0;
+    margin-top: 20px;
+}
+
+.bank-details-form h4 {
+    color: #166534;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.bank-details-form .form-group {
+    margin-bottom: 15px;
+}
+
+.bank-details-form label {
+    display: block;
+    margin-bottom: 5px;
+    color: #166534;
+    font-weight: 500;
+}
+
+.bank-details-form input,
+.bank-details-form select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    font-size: 16px;
+    background-color: white;
+}
+
+.btn-submit-bank {
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-submit-bank:hover {
+    background-color: #16a34a;
+}
+
+.btn-submit-bank:disabled {
+    background-color: #86efac;
+    cursor: not-allowed;
+}
+
+.bank-details-submitted {
+    background-color: #f8fafc;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-top: 20px;
+}
+
+.bank-details-submitted h4 {
+    color: #0f172a;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.bank-details-submitted p {
+    margin: 5px 0;
+    color: #475569;
+}

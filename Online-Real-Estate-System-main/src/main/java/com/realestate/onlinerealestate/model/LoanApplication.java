@@ -37,6 +37,37 @@ public class LoanApplication {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "property_id")
+    private Property property;
+
+    private Integer tenureYears;
+
+    @Column(length = 20)
+    private String status = "PENDING"; // PENDING, APPROVED, REJECTED
+
+    @Column(columnDefinition = "TEXT")
+    private String adminRemarks;
+
+    @Column(length = 20)
+    private String panNumber;
+
+    @Column(length = 500)
+    private String documentUrl; // Path to the uploaded document
+
+    @Column(length = 100)
+    private String selectedBank;
+
+    @Column(length = 50)
+    private String bankAccountNumber;
+
+    @Column(length = 20)
+    private String bankIfscCode;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -124,6 +155,86 @@ public class LoanApplication {
         this.createdAt = createdAt;
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Property getProperty() {
+        return property;
+    }
+
+    public void setProperty(Property property) {
+        this.property = property;
+    }
+
+    public Integer getTenureYears() {
+        return tenureYears;
+    }
+
+    public void setTenureYears(Integer tenureYears) {
+        this.tenureYears = tenureYears;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getAdminRemarks() {
+        return adminRemarks;
+    }
+
+    public void setAdminRemarks(String adminRemarks) {
+        this.adminRemarks = adminRemarks;
+    }
+
+    public String getPanNumber() {
+        return panNumber;
+    }
+
+    public void setPanNumber(String panNumber) {
+        this.panNumber = panNumber;
+    }
+
+    public String getDocumentUrl() {
+        return documentUrl;
+    }
+
+    public void setDocumentUrl(String documentUrl) {
+        this.documentUrl = documentUrl;
+    }
+
+    public String getSelectedBank() {
+        return selectedBank;
+    }
+
+    public void setSelectedBank(String selectedBank) {
+        this.selectedBank = selectedBank;
+    }
+
+    public String getBankAccountNumber() {
+        return bankAccountNumber;
+    }
+
+    public void setBankAccountNumber(String bankAccountNumber) {
+        this.bankAccountNumber = bankAccountNumber;
+    }
+
+    public String getBankIfscCode() {
+        return bankIfscCode;
+    }
+
+    public void setBankIfscCode(String bankIfscCode) {
+        this.bankIfscCode = bankIfscCode;
+    }
+
     @Override
     public String toString() {
         return "LoanApplication{" +
@@ -137,6 +248,9 @@ public class LoanApplication {
                 ", annualIncome=" + annualIncome +
                 ", message='" + message + '\'' +
                 ", createdAt=" + createdAt +
+                ", tenureYears=" + tenureYears +
+                ", status='" + status + '\'' +
+                ", panNumber='" + panNumber + '\'' +
                 '}';
     }
 }

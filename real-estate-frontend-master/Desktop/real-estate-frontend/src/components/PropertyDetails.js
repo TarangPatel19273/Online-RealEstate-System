@@ -7,18 +7,32 @@ import Chat from "./Chat";
 import propertyService from "../services/propertyService";
 import wishlistService from "../services/wishlistService";
 import EMICalculator from "./EMICalculator";
+import axios from "axios";
+import { API_BASE } from "../config";
 
-// Import MapmyIndia from npm package (named export)
-import { mappls } from 'mappls-web-maps';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const PropertyDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    // Mappls map object
-    const [mapplsObject, setMapplsObject] = useState(null);
     const [property, setProperty] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+    const [mediaTab, setMediaTab] = useState("Images"); // "Images" or "Videos"
     const [isOwner, setIsOwner] = useState(false);
     const [showContact, setShowContact] = useState(false);
     const [showChat, setShowChat] = useState(false);
@@ -30,8 +44,59 @@ const PropertyDetails = () => {
     const [geocodingError, setGeocodingError] = useState(false);
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
     const [activePlaceType, setActivePlaceType] = useState(null);
-    const [mapLoading, setMapLoading] = useState(true);
-    const [mapInitError, setMapInitError] = useState(null);
+    const [uploadingMedia, setUploadingMedia] = useState(false);
+    const [dealerPrices, setDealerPrices] = useState({});
+    const [showDealerModal, setShowDealerModal] = useState(false);
+    const [selectedDealer, setSelectedDealer] = useState(null);
+
+    // Visit State
+    const [showVisitModal, setShowVisitModal] = useState(false);
+    const [visitDate, setVisitDate] = useState("");
+    const [visitContact, setVisitContact] = useState("");
+    const [visitMessage, setVisitMessage] = useState("");
+    const [visiting, setVisiting] = useState(false);
+
+    const handleBookVisit = async () => {
+        const token = localStorage.getItem("token");
+        const storedUser = localStorage.getItem("user");
+        if (!token || !storedUser) {
+            alert("Please login to book a visit");
+            navigate("/login");
+            return;
+        }
+
+        if (!visitDate) {
+            alert("Please select a date and time");
+            return;
+        }
+
+        if (!visitContact || visitContact.trim() === "") {
+            alert("Please provide a contact number");
+            return;
+        }
+
+        try {
+            setVisiting(true);
+            const user = JSON.parse(storedUser);
+            await axios.post(`${API_BASE}/api/visits/request`, {
+                userId: user.id,
+                propertyId: property.id,
+                visitDate: visitDate,
+                contactNumber: visitContact,
+                message: visitMessage
+            });
+            alert("Visit requested successfully! You can view the status in My Visits.");
+            setShowVisitModal(false);
+            setVisitDate("");
+            setVisitContact("");
+            setVisitMessage("");
+        } catch (err) {
+            console.error("Error booking visit", err);
+            alert("Failed to book visit. Please try again.");
+        } finally {
+            setVisiting(false);
+        }
+    };
 
     // Load Leaflet map when coordinates are available
     useEffect(() => {
@@ -114,6 +179,39 @@ const PropertyDetails = () => {
         if (!success) {
             alert(`Could not fetch data for ${type}. The map servers might be busy. Please try again later.`);
             setActivePlaceType(null);
+        }
+    };
+
+    const handleMediaUpload = async (e, type) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const formData = new FormData();
+        Array.from(files).forEach(file => {
+            formData.append(type === 'image' ? 'images' : 'videos', file);
+        });
+
+        try {
+            setUploadingMedia(true);
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Please login to upload media");
+                return;
+            }
+
+            await propertyService.uploadMedia(id, formData);
+
+            // Re-fetch property to get updated media
+            const response = await propertyService.getPropertyById(id);
+            setProperty(response.data);
+            alert(`${type === 'image' ? 'Photos' : 'Videos'} uploaded successfully!`);
+        } catch (err) {
+            console.error(`Error uploading ${type}:`, err);
+            alert(`Failed to upload ${type}. Please try again.`);
+        } finally {
+            setUploadingMedia(false);
+            // Clear the file input
+            e.target.value = null;
         }
     };
 
@@ -221,123 +319,56 @@ const PropertyDetails = () => {
         }
     }, [property]);
 
-    // Initialize MapmyIndia Map
     useEffect(() => {
-        if (displayCoordinates && !mapplsObject) {
-            setMapLoading(true);
-            setMapInitError(null);
+        const fetchDealerPrices = async () => {
+            if (activeTab !== "Featured Dealers") return;
 
-            const loadMap = () => {
-                try {
-                    if (!mappls) {
-                        console.error("MapmyIndia SDK not available");
-                        setMapInitError("MapmyIndia SDK not loaded");
-                        setMapLoading(false);
-                        return;
-                    }
-
-                    const mapplsSDK = new mappls();
-                    const apiKey = "c9391d6e81e853de346e77a0ff79b7cc";
-                    
-                    console.log("Initializing MapmyIndia with coordinates:", displayCoordinates);
-
-                    // Initialize WITHOUT container - just authenticate the API key
-                    mapplsSDK.initialize(apiKey, {}, () => {
-                        console.log("MapmyIndia SDK authenticated");
-
-                        setTimeout(() => {
-                            try {
-                                const container = document.getElementById('map-container');
-                                if (!container) {
-                                    console.error("Map container not found");
-                                    setMapInitError("Map container not found");
-                                    setMapLoading(false);
-                                    return;
-                                }
-
-                                console.log("Creating map on container with center:", displayCoordinates);
-                                
-                                // Create map instance with explicit container ID
-                                const map = new mapplsSDK.Map({
-                                    container: 'map-container',
-                                    center: [displayCoordinates.lat, displayCoordinates.lng],
-                                    zoom: 15,
-                                    tileLayer: true,
-                                    clickableOption: true
-                                });
-
-                                console.log("✓ Map instance created successfully");
-                                
-                                // Add event listeners
-                                map.on('load', () => {
-                                    console.log("✓ Map tiles loaded - map ready!");
-                                    setMapLoading(false);
-                                });
-
-                                map.on('error', (err) => {
-                                    console.error("Map error event:", err);
-                                });
-
-                                setMapplsObject(map);
-                                map.mapplsSDK = mapplsSDK;
-                                
-                                // Set loading done after a moment
-                                setTimeout(() => {
-                                    setMapLoading(false);
-                                    console.log("✓ Map display complete");
-                                }, 2000);
-
-                            } catch (e) {
-                                console.error("Error creating map:", e.message);
-                                setMapInitError(`Map Error: ${e.message}`);
-                                setMapLoading(false);
-                            }
-                        }, 500);
-
-                    });
-
-                } catch (e) {
-                    console.error("Unexpected error:", e);
-                    setMapInitError(e.message);
-                    setMapLoading(false);
-                }
+            const symbols = {
+                "DLF Limited": "DLF.NS",
+                "Godrej Properties": "GODREJPROP.NS",
+                "Macrotech (Lodha)": "LODHA.NS",
+                "Prestige Estates": "PRESTIGE.NS",
+                "Oberoi Realty": "OBEROIRLTY.NS",
+                "Ganesh Housing": "GANESHHOU.NS"
             };
 
-            // Wait for DOM to be ready
-            setTimeout(loadMap, 300);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [displayCoordinates]);
-
-    // Handle Nearby Places on Map
-    useEffect(() => {
-        if (mapplsObject && nearbyPlaces.length > 0) {
-            console.log(`Found ${nearbyPlaces.length} nearby places - displaying on map`);
-            
-            // Try to add markers for nearby places
-            try {
-                const mapplsSDK = mapplsObject.mapplsSDK;
-                
-                nearbyPlaces.forEach((place) => {
-                    try {
-                        // Try using addMarker if available on map object
-                        if (typeof mapplsObject.addMarker === 'function') {
-                            mapplsObject.addMarker({
-                                position: { lat: place.lat, lng: place.lng },
-                                title: place.name || place.type
-                            });
+            const fetchPrice = async (name, symbol) => {
+                try {
+                    const res = await fetch(`http://localhost:8080/api/stocks/price?symbol=${symbol}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const price = data.chart?.result?.[0]?.meta?.regularMarketPrice;
+                        if (price) {
+                            return { name, price };
                         }
-                    } catch (e) {
-                        // Silently skip marker errors - map still displays even without markers
                     }
-                });
-                
-                console.log(`✓ Nearby places displaying (${nearbyPlaces.length} locations)`);
-            } catch (e) {
-                console.warn("Markers not available, but map is still functional");
+                } catch (err) {
+                    console.error(`Failed to fetch stock price for ${symbol}:`, err);
+                }
+                return { name, price: null };
+            };
+
+            // Fetch all prices concurrently to drastically reduce latency
+            const results = await Promise.allSettled(
+                Object.entries(symbols).map(([name, symbol]) => fetchPrice(name, symbol))
+            );
+
+            const newPrices = {};
+            results.forEach(result => {
+                if (result.status === 'fulfilled' && result.value.price !== null) {
+                    newPrices[result.value.name] = result.value.price;
+                }
+            });
+
+            if (Object.keys(newPrices).length > 0) {
+                setDealerPrices(prev => ({ ...prev, ...newPrices }));
             }
-        }
-    }, [nearbyPlaces, mapplsObject]);
+        };
+
+        fetchDealerPrices();
+    }, [activeTab]);
+
+
 
     useEffect(() => {
         const fetchProperty = async () => {
@@ -383,9 +414,10 @@ const PropertyDetails = () => {
 
             try {
                 const user = JSON.parse(storedUser);
-                // Check if user ID or Email matches
+                // Check if user ID or Email matches or user is ADMIN
                 if ((user.id && user.id === property.userId) ||
-                    (user.email && user.email === property.sellerEmail)) {
+                    (user.email && user.email === property.sellerEmail) ||
+                    user.role === 'ADMIN') {
                     setIsOwner(true);
                 }
             } catch (e) {
@@ -395,7 +427,7 @@ const PropertyDetails = () => {
 
         const fetchSellerId = async () => {
             if (!property) return;
-            
+
             try {
                 // Try to get seller ID from property if it exists
                 if (property.userId) {
@@ -489,10 +521,47 @@ const PropertyDetails = () => {
                         <div>
                             <h1 style={{ fontSize: "42px", fontWeight: "700", margin: "0 0 5px 0", color: "#333" }}>
                                 ₹{property.price}
+                                {property.featured && <span style={{ marginLeft: '15px', fontSize: '16px', fontWeight: '600', background: '#f59e0b', color: 'white', padding: '4px 12px', borderRadius: '20px', verticalAlign: 'middle' }}>★ Featured</span>}
+                                {property.verified && <span style={{ marginLeft: '10px', fontSize: '16px', fontWeight: '600', background: '#10b981', color: 'white', padding: '4px 12px', borderRadius: '20px', verticalAlign: 'middle' }}>✓ Verified</span>}
                             </h1>
                             <div style={{ fontSize: "20px", color: "#666", fontWeight: "500" }}>{configText}</div>
                         </div>
                         <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        if (navigator.share) {
+                                            await navigator.share({
+                                                title: property.title,
+                                                text: `Check out this property: ${property.title} for ₹${property.price}`,
+                                                url: window.location.href,
+                                            });
+                                        } else {
+                                            await navigator.clipboard.writeText(window.location.href);
+                                            alert("Link copied to clipboard!");
+                                        }
+                                    } catch (err) {
+                                        console.error("Error sharing:", err);
+                                    }
+                                }}
+                                style={{
+                                    padding: "8px 16px",
+                                    border: "2px solid #e0e0e0",
+                                    background: "white",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                    fontSize: "20px",
+                                    color: "#666",
+                                    transition: "all 0.3s ease",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    height: "46px"
+                                }}
+                                title="Share Property"
+                            >
+                                🔗
+                            </button>
                             <button
                                 onClick={handleWishlistToggle}
                                 disabled={wishlistLoading}
@@ -504,7 +573,11 @@ const PropertyDetails = () => {
                                     cursor: wishlistLoading ? "not-allowed" : "pointer",
                                     fontSize: "24px",
                                     color: isInWishlist ? "#e74c3c" : "#999",
-                                    transition: "all 0.3s ease"
+                                    transition: "all 0.3s ease",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    height: "46px"
                                 }}
                                 title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
                             >
@@ -532,11 +605,76 @@ const PropertyDetails = () => {
                                     >
                                         💬 Chat with Seller
                                     </button>
+                                    {property.type !== "Rent" && (
+                                        <button
+                                            onClick={() => navigate("/loan-application", { state: { loanAmount: property.price.toString().replace(/,/g, ''), propertyId: property.id, propertyCity: property.city } })}
+                                            style={{ padding: "12px 32px", background: "#ffc107", color: "#333", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}
+                                            title="Apply for Home Loan"
+                                        >
+                                            🏦 Apply for Loan
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setShowVisitModal(true)}
+                                        style={{ padding: "12px 32px", background: "#8e44ad", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}
+                                    >
+                                        📅 Book Visit
+                                    </button>
                                 </div>
                             )}
                         </div>
                     </div>
 
+                    {/* Visit Modal */}
+                    {showVisitModal && (
+                        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+                            <div style={{ background: "white", padding: "30px", borderRadius: "8px", width: "400px", maxWidth: "90%" }}>
+                                <h2>Schedule a Visit</h2>
+                                <p>Select a date and time to visit this property.</p>
+
+                                <label style={{ display: 'block', marginTop: '15px', fontWeight: '600' }}>Date & Time *</label>
+                                <input
+                                    type="datetime-local"
+                                    value={visitDate}
+                                    onChange={(e) => setVisitDate(e.target.value)}
+                                    style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "4px", border: "1px solid #ccc" }}
+                                    required
+                                />
+
+                                <label style={{ display: 'block', marginTop: '15px', fontWeight: '600' }}>Contact Number *</label>
+                                <input
+                                    type="text"
+                                    value={visitContact}
+                                    onChange={(e) => setVisitContact(e.target.value)}
+                                    placeholder="Enter your phone number"
+                                    style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "4px", border: "1px solid #ccc" }}
+                                    required
+                                />
+
+                                <label style={{ display: 'block', marginTop: '15px', fontWeight: '600' }}>Message (Optional)</label>
+                                <textarea
+                                    value={visitMessage}
+                                    onChange={(e) => setVisitMessage(e.target.value)}
+                                    placeholder="Any specific questions or requests?"
+                                    style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "4px", border: "1px solid #ccc", minHeight: "80px", resize: "vertical" }}
+                                />
+
+                                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "20px" }}>
+                                    <button
+                                        onClick={() => setShowVisitModal(false)}
+                                        style={{ padding: "8px 16px", background: "#f1f1f1", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                                    >Cancel</button>
+                                    <button
+                                        onClick={handleBookVisit}
+                                        disabled={visiting}
+                                        style={{ padding: "8px 16px", background: "#8e44ad", color: "white", border: "none", borderRadius: "4px", cursor: visiting ? "not-allowed" : "pointer" }}
+                                    >
+                                        {visiting ? "Booking..." : "Confirm Booking"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                 </div>
 
@@ -567,381 +705,625 @@ const PropertyDetails = () => {
 
                 {/* Tab Content Rendering */}
                 {activeTab === "Overview" && (
-                <div>
-                {/* Main Content */}
-                <div style={{ display: "flex", gap: "30px", padding: "30px 40px" }}>
+                    <div>
+                        {/* Main Content */}
+                        <div style={{ display: "flex", gap: "30px", padding: "30px 40px" }}>
 
-                    {/* Left Side - Images */}
-                    <div style={{ flex: "1", maxWidth: "700px" }}>
-                        {hasImages ? (
-                            <div style={{ position: "relative", borderRadius: "8px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", background: "#f5f5f5" }}>
-                                <img
-                                    src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentImageIndex])}`}
-                                    alt={property.title}
-                                    style={{ width: "100%", height: "500px", objectFit: "cover" }}
-                                />
+                            {/* Left Side - Main Media */}
+                            <div style={{ flex: "1", maxWidth: "700px" }}>
+                                {mediaTab === "Images" ? (
+                                    hasImages ? (
+                                        <div style={{ position: "relative", borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 15px rgba(0,0,0,0.1)", background: "#000" }}>
+                                            {/* Image display */}
+                                            <img
+                                                src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentImageIndex])}`}
+                                                alt={property.title}
+                                                style={{ width: "100%", height: "500px", objectFit: "contain", background: "#000" }}
+                                            />
 
-                                {totalImages > 1 && (
+                                            {totalImages > 1 && (
+                                                <>
+                                                    <button
+                                                        onClick={() => setCurrentImageIndex((prev) => (prev - 1 + totalImages) % totalImages)}
+                                                        style={{ position: "absolute", left: "15px", top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.9)", color: "#333", border: "none", borderRadius: "50%", width: "45px", height: "45px", cursor: "pointer", fontSize: "24px", fontWeight: "bold", boxShadow: "0 2px 8px rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                                    >‹</button>
+                                                    <button
+                                                        onClick={() => setCurrentImageIndex((prev) => (prev + 1) % totalImages)}
+                                                        style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.9)", color: "#333", border: "none", borderRadius: "50%", width: "45px", height: "45px", cursor: "pointer", fontSize: "24px", fontWeight: "bold", boxShadow: "0 2px 8px rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                                    >›</button>
+                                                </>
+                                            )}
+
+                                            {/* Image Counter */}
+                                            <div style={{ position: "absolute", bottom: "15px", right: "15px", background: "rgba(0,0,0,0.7)", color: "white", padding: "6px 12px", borderRadius: "6px", fontSize: "14px", fontWeight: "500", backdropFilter: "blur(4px)" }}>
+                                                {currentImageIndex + 1} / {totalImages}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ height: "500px", background: "#f8f9fa", borderRadius: "12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "2px dashed #e0e0e0" }}>
+                                            <div style={{ fontSize: "48px", marginBottom: "15px" }}>📷</div>
+                                            <div style={{ fontSize: "18px", color: "#666", fontWeight: "500" }}>No Images Available</div>
+                                            <div style={{ fontSize: "14px", color: "#999", marginTop: "5px" }}>This property doesn't have any photos yet</div>
+
+                                            {isOwner && (
+                                                <div style={{ marginTop: "20px" }}>
+                                                    <input
+                                                        type="file"
+                                                        id="upload-photos-empty"
+                                                        multiple
+                                                        accept="image/*"
+                                                        style={{ display: "none" }}
+                                                        onChange={(e) => handleMediaUpload(e, 'image')}
+                                                        disabled={uploadingMedia}
+                                                    />
+                                                    <label
+                                                        htmlFor="upload-photos-empty"
+                                                        style={{
+                                                            padding: "10px 20px",
+                                                            background: "#0078db",
+                                                            color: "white",
+                                                            borderRadius: "6px",
+                                                            cursor: uploadingMedia ? "not-allowed" : "pointer",
+                                                            fontWeight: "600",
+                                                            opacity: uploadingMedia ? 0.7 : 1
+                                                        }}
+                                                    >
+                                                        {uploadingMedia ? "Uploading..." : "Upload Photos"}
+                                                    </label>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                ) : (
+                                    property.videoUrls && property.videoUrls.length > 0 ? (
+                                        <div style={{ position: "relative", borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 15px rgba(0,0,0,0.1)", background: "#000" }}>
+                                            {/* Video display */}
+                                            <video
+                                                src={`http://localhost:8080/api/properties/videos/${encodeURIComponent(property.videoUrls[currentVideoIndex])}`}
+                                                controls
+                                                style={{ width: "100%", height: "500px", objectFit: "contain", background: "#000" }}
+                                            />
+
+                                            {property.videoUrls.length > 1 && (
+                                                <div style={{ position: "absolute", bottom: "15px", left: "15px", display: "flex", gap: "10px", zIndex: 10 }}>
+                                                    <button
+                                                        onClick={() => setCurrentVideoIndex((prev) => (prev - 1 + property.videoUrls.length) % property.videoUrls.length)}
+                                                        style={{ background: "rgba(0,0,0,0.7)", color: "white", border: "none", borderRadius: "6px", padding: "8px 12px", cursor: "pointer", fontSize: "14px", fontWeight: "500", backdropFilter: "blur(4px)" }}
+                                                    >Previous Video</button>
+                                                    <button
+                                                        onClick={() => setCurrentVideoIndex((prev) => (prev + 1) % property.videoUrls.length)}
+                                                        style={{ background: "rgba(0,0,0,0.7)", color: "white", border: "none", borderRadius: "6px", padding: "8px 12px", cursor: "pointer", fontSize: "14px", fontWeight: "500", backdropFilter: "blur(4px)" }}
+                                                    >Next Video</button>
+                                                </div>
+                                            )}
+
+                                            {/* Video Counter */}
+                                            <div style={{ position: "absolute", bottom: "15px", right: "15px", background: "rgba(0,0,0,0.7)", color: "white", padding: "6px 12px", borderRadius: "6px", fontSize: "14px", fontWeight: "500", backdropFilter: "blur(4px)" }}>
+                                                {currentVideoIndex + 1} / {property.videoUrls.length}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ height: "500px", background: "#f8f9fa", borderRadius: "12px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "2px dashed #e0e0e0" }}>
+                                            <div style={{ fontSize: "48px", marginBottom: "15px" }}>🎥</div>
+                                            <div style={{ fontSize: "18px", color: "#666", fontWeight: "500" }}>No Videos Available</div>
+                                            <div style={{ fontSize: "14px", color: "#999", marginTop: "5px" }}>This property doesn't have any videos yet</div>
+
+                                            {isOwner && (
+                                                <div style={{ marginTop: "20px" }}>
+                                                    <input
+                                                        type="file"
+                                                        id="upload-videos-empty"
+                                                        multiple
+                                                        accept="video/*"
+                                                        style={{ display: "none" }}
+                                                        onChange={(e) => handleMediaUpload(e, 'video')}
+                                                        disabled={uploadingMedia}
+                                                    />
+                                                    <label
+                                                        htmlFor="upload-videos-empty"
+                                                        style={{
+                                                            padding: "10px 20px",
+                                                            background: "#0078db",
+                                                            color: "white",
+                                                            borderRadius: "6px",
+                                                            cursor: uploadingMedia ? "not-allowed" : "pointer",
+                                                            fontWeight: "600",
+                                                            opacity: uploadingMedia ? 0.7 : 1
+                                                        }}
+                                                    >
+                                                        {uploadingMedia ? "Uploading..." : "Upload Videos"}
+                                                    </label>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                )}
+
+                                {/* Media Tabs */}
+                                <div style={{ marginTop: "20px", display: "flex", gap: "25px", borderBottom: "1px solid #e0e0e0", paddingBottom: "1px", alignItems: "center" }}>
+                                    <button
+                                        onClick={() => setMediaTab("Images")}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            fontSize: "16px",
+                                            fontWeight: mediaTab === "Images" ? "600" : "500",
+                                            color: mediaTab === "Images" ? "#0078db" : "#666",
+                                            cursor: "pointer",
+                                            borderBottom: mediaTab === "Images" ? "3px solid #0078db" : "3px solid transparent",
+                                            paddingBottom: "10px",
+                                            transition: "all 0.2s ease"
+                                        }}>
+                                        Property ({totalImages})
+                                    </button>
+                                    <button
+                                        onClick={() => setMediaTab("Videos")}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            fontSize: "16px",
+                                            fontWeight: mediaTab === "Videos" ? "600" : "500",
+                                            color: mediaTab === "Videos" ? "#0078db" : "#666",
+                                            cursor: "pointer",
+                                            borderBottom: mediaTab === "Videos" ? "3px solid #0078db" : "3px solid transparent",
+                                            paddingBottom: "10px",
+                                            transition: "all 0.2s ease"
+                                        }}>
+                                        Videos ({property.videoUrls ? property.videoUrls.length : 0})
+                                    </button>
+
+                                    {isOwner && (
+                                        <div style={{ marginLeft: "auto", position: "relative", paddingBottom: "10px" }}>
+                                            <input
+                                                type="file"
+                                                id={`upload-more-${mediaTab.toLowerCase()}`}
+                                                multiple
+                                                accept={mediaTab === "Images" ? "image/*" : "video/*"}
+                                                style={{ display: "none" }}
+                                                onChange={(e) => handleMediaUpload(e, mediaTab === "Images" ? "image" : "video")}
+                                                disabled={uploadingMedia}
+                                            />
+                                            <label
+                                                htmlFor={`upload-more-${mediaTab.toLowerCase()}`}
+                                                style={{
+                                                    fontSize: "14px",
+                                                    color: "#0078db",
+                                                    cursor: uploadingMedia ? "not-allowed" : "pointer",
+                                                    fontWeight: "600",
+                                                    opacity: uploadingMedia ? 0.7 : 1,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "5px",
+                                                    padding: "4px 8px",
+                                                    border: "1px solid #0078db",
+                                                    borderRadius: "4px",
+                                                    transition: "background 0.2s",
+                                                    backgroundColor: "transparent"
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    if (!uploadingMedia) e.currentTarget.style.backgroundColor = "#e6f2ff";
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    if (!uploadingMedia) e.currentTarget.style.backgroundColor = "transparent";
+                                                }}
+                                            >
+                                                <span>+</span>
+                                                {uploadingMedia ? "Uploading..." : `Add ${mediaTab === "Images" ? "Photos" : "Videos"}`}
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right Side - Property Details */}
+                            <div style={{ flex: "1" }}>
+
+                                {/* Area Section */}
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
+                                    <div>
+                                        <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                            <span style={{ fontSize: "20px" }}>📏</span> Area
+                                        </div>
+                                        <div style={{ fontSize: "18px", fontWeight: "700", color: "#0078db" }}>
+                                            {property.area ? `${property.area} sq.ft` : "N/A"}
+                                        </div>
+                                        {property.carpetArea && (
+                                            <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
+                                                Carpet area: {property.carpetArea} sq.ft
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                            <span style={{ fontSize: "20px" }}>🏠</span> Configuration
+                                        </div>
+                                        <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                            {property.bedrooms || 0} Bedrooms, {property.bathrooms || 0} Bathrooms
+                                            {property.balconies ? `, ${property.balconies} Balcony` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Price Section */}
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
+                                    <div>
+                                        <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                            <span style={{ fontSize: "20px" }}>💰</span> Price
+                                        </div>
+                                        <div style={{ fontSize: "18px", fontWeight: "700", color: "#333" }}>
+                                            ₹ {property.price} + Govt Charges & Tax
+                                        </div>
+                                        {property.area && (
+                                            <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
+                                                @ ₹{Math.round(parseFloat(property.price.replace(/,/g, '')) / property.area).toLocaleString()} per sq.ft <span style={{ color: "#28a745" }}>(Negotiable)</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                            <span style={{ fontSize: "20px" }}>📍</span> Address
+                                        </div>
+                                        <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                            {property.title}
+                                        </div>
+                                        <div style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}>
+                                            {property.location}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Floor & Age */}
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
+                                    <div>
+                                        <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                            <span style={{ fontSize: "20px" }}>🏢</span> Floor Number
+                                        </div>
+                                        <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                            {property.floorNumber || "N/A"} {property.totalFloors ? `of ${property.totalFloors} Floors` : ''}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                            <span style={{ fontSize: "20px" }}>📅</span> Property Age
+                                        </div>
+                                        <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
+                                            {property.propertyAge || "Not specified"}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                {property.description && (
+                                    <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "25px" }}>
+                                        <h3 style={{ fontSize: "18px", marginBottom: "12px", fontWeight: "700", color: "#333" }}>Description</h3>
+                                        <p style={{ lineHeight: "1.7", color: "#555", fontSize: "15px" }}>{property.description}</p>
+                                    </div>
+                                )}
+
+                                {/* EMI Calculator - Only for Buying */}
+                                {property.type !== "Rent" && (
+                                    <div style={{ marginBottom: "25px" }}>
+                                        <EMICalculator propertyPrice={property.price} propertyId={property.id} propertyCity={property.city} />
+                                    </div>
+                                )}
+
+                                {/* Amenities */}
+                                {property.amenities && property.amenities.length > 0 && (
+                                    <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "25px" }}>
+                                        <h3 style={{ fontSize: "18px", marginBottom: "15px", fontWeight: "700", color: "#333" }}>Amenities</h3>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+                                            {(typeof property.amenities === 'string' ? JSON.parse(property.amenities) : property.amenities).map((amenity, idx) => (
+                                                <div key={idx} style={{ fontSize: "14px", color: "#333", display: "flex", alignItems: "center", gap: "8px" }}>
+                                                    <span style={{ color: "#28a745", fontWeight: "bold" }}>✓</span> {amenity}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Property Type Tags */}
+                                <div style={{ display: "flex", gap: "10px", marginBottom: "25px", flexWrap: "wrap" }}>
+                                    <span style={{ padding: "8px 16px", background: "#007bff", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
+                                        {property.type === "Sell" ? "For Sale" : property.type === "Rent" ? "For Rent" : property.type}
+                                    </span>
+                                    <span style={{ padding: "8px 16px", background: "#6c757d", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
+                                        {property.category || "Residential"}
+                                    </span>
+                                    {property.userType && (
+                                        <span style={{ padding: "8px 16px", background: "#17a2b8", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
+                                            {property.userType === "Owner" ? "👤 Owner" : "💼 Broker"}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                {isOwner ? (
+                                    <div style={{ display: "flex", gap: "10px" }}>
+                                        <button
+                                            onClick={() => navigate("/my-properties")}
+                                            style={{ padding: "14px 28px", background: "#007bff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
+                                        >
+                                            Manage Property
+                                        </button>
+                                    </div>
+                                ) : (
                                     <>
-                                        <button
-                                            onClick={() => setCurrentImageIndex((prev) => (prev - 1 + totalImages) % totalImages)}
-                                            style={{ position: "absolute", left: "15px", top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.9)", color: "#333", border: "none", borderRadius: "50%", width: "45px", height: "45px", cursor: "pointer", fontSize: "24px", fontWeight: "bold", boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
-                                        >‹</button>
-                                        <button
-                                            onClick={() => setCurrentImageIndex((prev) => (prev + 1) % totalImages)}
-                                            style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.9)", color: "#333", border: "none", borderRadius: "50%", width: "45px", height: "45px", cursor: "pointer", fontSize: "24px", fontWeight: "bold", boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
-                                        >›</button>
+                                        {showContact && (
+                                            <div style={{ padding: "20px", background: "#e9ecef", borderRadius: "8px", marginTop: "20px" }}>
+                                                <h3 style={{ fontSize: "18px", marginBottom: "15px", fontWeight: "700" }}>Seller Contact</h3>
+                                                <div style={{ marginBottom: "10px" }}>
+                                                    <strong>Name:</strong> {property.sellerUsername || "N/A"}
+                                                </div>
+                                                {property.contactNumber && (
+                                                    <div style={{ marginBottom: "10px" }}>
+                                                        <strong>Phone:</strong> {property.contactNumber}
+                                                    </div>
+                                                )}
+                                                <div style={{ marginBottom: "15px" }}>
+                                                    <strong>Email:</strong> {property.sellerEmail || "N/A"}
+                                                </div>
+                                                {property.sellerEmail && (
+                                                    <a
+                                                        href={`mailto:${property.sellerEmail}?subject=Inquiry about ${property.title}`}
+                                                        style={{ display: "inline-block", padding: "10px 20px", background: "#28a745", color: "white", textDecoration: "none", borderRadius: "6px", fontWeight: "600" }}
+                                                    >
+                                                        Send Email
+                                                    </a>
+                                                )}
+                                                <button
+                                                    onClick={() => setShowContact(false)}
+                                                    style={{ marginLeft: "10px", padding: "10px 20px", background: "#6c757d", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
+                                                >
+                                                    Close
+                                                </button>
+                                            </div>
+                                        )}
                                     </>
                                 )}
 
-                                {/* Image Counter */}
-                                <div style={{ position: "absolute", bottom: "15px", right: "15px", background: "rgba(0,0,0,0.7)", color: "white", padding: "6px 12px", borderRadius: "4px", fontSize: "14px" }}>
-                                    {currentImageIndex + 1} / {totalImages}
-                                </div>
-
-                                {/* Photo watermark text */}
-                                <div style={{ position: "absolute", bottom: "50%", left: "50%", transform: "translate(-50%, 50%)", fontSize: "72px", color: "rgba(255,255,255,0.15)", fontWeight: "bold", pointerEvents: "none" }}>
-                                    Photos Under Screening
-                                </div>
-                            </div>
-                        ) : (
-                            <div style={{ height: "500px", background: "#f0f0f0", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", color: "#999" }}>
-                                No Images Available
-                            </div>
-                        )}
-
-                        {/* Tabs for Videos/Property */}
-                        <div style={{ marginTop: "20px", display: "flex", gap: "20px", borderBottom: "2px solid #e0e0e0", paddingBottom: "10px" }}>
-                            <button style={{ background: "none", border: "none", fontSize: "16px", fontWeight: "600", color: "#333", cursor: "pointer", borderBottom: "3px solid #0078db", paddingBottom: "10px" }}>
-                                Property ({totalImages})
-                            </button>
-                            <button style={{ background: "none", border: "none", fontSize: "16px", fontWeight: "500", color: "#666", cursor: "pointer" }}>
-                                Videos (0)
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Right Side - Property Details */}
-                    <div style={{ flex: "1" }}>
-
-                        {/* Area Section */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
-                            <div>
-                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                    <span style={{ fontSize: "20px" }}>📏</span> Area
-                                </div>
-                                <div style={{ fontSize: "18px", fontWeight: "700", color: "#0078db" }}>
-                                    {property.area ? `${property.area} sq.ft` : "N/A"}
-                                </div>
-                                {property.carpetArea && (
-                                    <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
-                                        Carpet area: {property.carpetArea} sq.ft
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                    <span style={{ fontSize: "20px" }}>🏠</span> Configuration
-                                </div>
-                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                                    {property.bedrooms || 0} Bedrooms, {property.bathrooms || 0} Bathrooms
-                                    {property.balconies ? `, ${property.balconies} Balcony` : ''}
-                                </div>
                             </div>
                         </div>
 
-                        {/* Price Section */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
-                            <div>
-                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                    <span style={{ fontSize: "20px" }}>💰</span> Price
+                        {/* Places Nearby Section */}
+                        <div style={{ padding: "30px 40px", background: "#f8f9fa", marginTop: "30px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "20px" }}>
+                                <div style={{ fontSize: "32px" }}>📍</div>
+                                <div>
+                                    <h2 style={{ fontSize: "24px", fontWeight: "700", margin: "0 0 5px 0", color: "#333" }}>Places nearby</h2>
+                                    <div style={{ fontSize: "15px", color: "#666" }}>{property.location}</div>
                                 </div>
-                                <div style={{ fontSize: "18px", fontWeight: "700", color: "#333" }}>
-                                    ₹ {property.price} + Govt Charges & Tax
-                                </div>
-                                {property.area && (
-                                    <div style={{ fontSize: "13px", color: "#666", marginTop: "5px" }}>
-                                        @ ₹{Math.round(parseFloat(property.price.replace(/,/g, '')) / property.area).toLocaleString()} per sq.ft <span style={{ color: "#28a745" }}>(Negotiable)</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                    <span style={{ fontSize: "20px" }}>📍</span> Address
-                                </div>
-                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                                    {property.title}
-                                </div>
-                                <div style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}>
-                                    {property.location}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Floor & Age */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
-                            <div>
-                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                    <span style={{ fontSize: "20px" }}>🏢</span> Floor Number
-                                </div>
-                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                                    {property.floorNumber || "N/A"} {property.totalFloors ? `of ${property.totalFloors} Floors` : ''}
-                                </div>
-                            </div>
-
-                            <div>
-                                <div style={{ fontSize: "14px", color: "#666", display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                    <span style={{ fontSize: "20px" }}>📅</span> Property Age
-                                </div>
-                                <div style={{ fontSize: "16px", fontWeight: "600", color: "#333" }}>
-                                    {property.propertyAge || "Not specified"}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Description */}
-                        {property.description && (
-                            <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "25px" }}>
-                                <h3 style={{ fontSize: "18px", marginBottom: "12px", fontWeight: "700", color: "#333" }}>Description</h3>
-                                <p style={{ lineHeight: "1.7", color: "#555", fontSize: "15px" }}>{property.description}</p>
-                            </div>
-                        )}
-
-                        {/* EMI Calculator - Only for Buying */}
-                        {property.type !== "Rent" && (
-                            <div style={{ marginBottom: "25px" }}>
-                                <EMICalculator propertyPrice={property.price} />
-                            </div>
-                        )}
-
-                        {/* Amenities */}
-                        {property.amenities && property.amenities.length > 0 && (
-                            <div style={{ background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "25px" }}>
-                                <h3 style={{ fontSize: "18px", marginBottom: "15px", fontWeight: "700", color: "#333" }}>Amenities</h3>
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
-                                    {(typeof property.amenities === 'string' ? JSON.parse(property.amenities) : property.amenities).map((amenity, idx) => (
-                                        <div key={idx} style={{ fontSize: "14px", color: "#333", display: "flex", alignItems: "center", gap: "8px" }}>
-                                            <span style={{ color: "#28a745", fontWeight: "bold" }}>✓</span> {amenity}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Property Type Tags */}
-                        <div style={{ display: "flex", gap: "10px", marginBottom: "25px", flexWrap: "wrap" }}>
-                            <span style={{ padding: "8px 16px", background: "#007bff", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
-                                {property.type === "Sell" ? "For Sale" : property.type === "Rent" ? "For Rent" : property.type}
-                            </span>
-                            <span style={{ padding: "8px 16px", background: "#6c757d", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
-                                {property.category || "Residential"}
-                            </span>
-                            {property.userType && (
-                                <span style={{ padding: "8px 16px", background: "#17a2b8", color: "white", borderRadius: "20px", fontSize: "14px", fontWeight: "600" }}>
-                                    {property.userType === "Owner" ? "👤 Owner" : "💼 Broker"}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        {isOwner ? (
-                            <div style={{ display: "flex", gap: "10px" }}>
-                                <button
-                                    onClick={() => navigate("/my-properties")}
-                                    style={{ padding: "14px 28px", background: "#007bff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
-                                >
-                                    Manage Property
+                                <button style={{ marginLeft: "auto", padding: "8px 20px", background: "white", border: "1px solid #0078db", color: "#0078db", borderRadius: "6px", cursor: "pointer", fontSize: "15px", fontWeight: "600" }}>
+                                    View All (50)
                                 </button>
                             </div>
-                        ) : (
-                            <>
-                                {showContact && (
-                                    <div style={{ padding: "20px", background: "#e9ecef", borderRadius: "8px", marginTop: "20px" }}>
-                                        <h3 style={{ fontSize: "18px", marginBottom: "15px", fontWeight: "700" }}>Seller Contact</h3>
-                                        <div style={{ marginBottom: "10px" }}>
-                                            <strong>Name:</strong> {property.sellerUsername || "N/A"}
-                                        </div>
-                                        {property.contactNumber && (
-                                            <div style={{ marginBottom: "10px" }}>
-                                                <strong>Phone:</strong> {property.contactNumber}
-                                            </div>
-                                        )}
-                                        <div style={{ marginBottom: "15px" }}>
-                                            <strong>Email:</strong> {property.sellerEmail || "N/A"}
-                                        </div>
-                                        {property.sellerEmail && (
-                                            <a
-                                                href={`mailto:${property.sellerEmail}?subject=Inquiry about ${property.title}`}
-                                                style={{ display: "inline-block", padding: "10px 20px", background: "#28a745", color: "white", textDecoration: "none", borderRadius: "6px", fontWeight: "600" }}
-                                            >
-                                                Send Email
-                                            </a>
-                                        )}
-                                        <button
-                                            onClick={() => setShowContact(false)}
-                                            style={{ marginLeft: "10px", padding: "10px 20px", background: "#6c757d", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
-                                        >
-                                            Close
-                                        </button>
-                                    </div>
-                                )}
-                            </>
-                        )}
+
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "15px" }}>
+                                <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🏫 Schools</div>
+                                    <div style={{ fontSize: "14px", color: "#666" }}>Multiple schools nearby</div>
+                                </div>
+                                <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🏥 Hospitals</div>
+                                    <div style={{ fontSize: "14px", color: "#666" }}>Healthcare facilities available</div>
+                                </div>
+                                <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🛒 Shopping</div>
+                                    <div style={{ fontSize: "14px", color: "#666" }}>Shopping centers nearby</div>
+                                </div>
+                                <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🚇 Transport</div>
+                                    <div style={{ fontSize: "14px", color: "#666" }}>Public transport accessible</div>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
-                </div>
-
-                {/* Places Nearby Section */}
-                <div style={{ padding: "30px 40px", background: "#f8f9fa", marginTop: "30px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "20px" }}>
-                        <div style={{ fontSize: "32px" }}>📍</div>
-                        <div>
-                            <h2 style={{ fontSize: "24px", fontWeight: "700", margin: "0 0 5px 0", color: "#333" }}>Places nearby</h2>
-                            <div style={{ fontSize: "15px", color: "#666" }}>{property.location}</div>
-                        </div>
-                        <button style={{ marginLeft: "auto", padding: "8px 20px", background: "white", border: "1px solid #0078db", color: "#0078db", borderRadius: "6px", cursor: "pointer", fontSize: "15px", fontWeight: "600" }}>
-                            View All (50)
-                        </button>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "15px" }}>
-                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🏫 Schools</div>
-                            <div style={{ fontSize: "14px", color: "#666" }}>Multiple schools nearby</div>
-                        </div>
-                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🏥 Hospitals</div>
-                            <div style={{ fontSize: "14px", color: "#666" }}>Healthcare facilities available</div>
-                        </div>
-                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🛒 Shopping</div>
-                            <div style={{ fontSize: "14px", color: "#666" }}>Shopping centers nearby</div>
-                        </div>
-                        <div style={{ padding: "15px", background: "white", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-                            <div style={{ fontSize: "16px", fontWeight: "600", color: "#333", marginBottom: "5px" }}>🚇 Transport</div>
-                            <div style={{ fontSize: "14px", color: "#666" }}>Public transport accessible</div>
-                        </div>
-                    </div>
-                </div>
-
-                </div>
                 )}
 
                 {/* Owner Details Tab */}
                 {activeTab === "Owner Details" && (
-                <div style={{ padding: "30px 40px", background: "white" }}>
-                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Owner Details</h2>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
-                        <div>
-                            <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "15px", color: "#333" }}>Seller Information</h3>
-                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px" }}>
-                                <div style={{ marginBottom: "15px" }}>
-                                    <strong style={{ color: "#666" }}>Name:</strong>
-                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.sellerUsername || "N/A"}</p>
-                                </div>
-                                <div style={{ marginBottom: "15px" }}>
-                                    <strong style={{ color: "#666" }}>Email:</strong>
-                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.sellerEmail || "N/A"}</p>
-                                </div>
-                                <div style={{ marginBottom: "15px" }}>
-                                    <strong style={{ color: "#666" }}>Phone:</strong>
-                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.contactNumber || "N/A"}</p>
-                                </div>
-                                <div style={{ marginBottom: "15px" }}>
-                                    <strong style={{ color: "#666" }}>User Type:</strong>
-                                    <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.userType || "N/A"}</p>
+                    <div style={{ padding: "30px 40px", background: "white" }}>
+                        <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Owner Details</h2>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
+                            <div>
+                                <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "15px", color: "#333" }}>Seller Information</h3>
+                                <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px" }}>
+                                    <div style={{ marginBottom: "15px" }}>
+                                        <strong style={{ color: "#666" }}>Name:</strong>
+                                        <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.sellerUsername || "N/A"}</p>
+                                    </div>
+                                    <div style={{ marginBottom: "15px" }}>
+                                        <strong style={{ color: "#666" }}>Email:</strong>
+                                        <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.sellerEmail || "N/A"}</p>
+                                    </div>
+                                    <div style={{ marginBottom: "15px" }}>
+                                        <strong style={{ color: "#666" }}>Phone:</strong>
+                                        <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.contactNumber || "N/A"}</p>
+                                    </div>
+                                    <div style={{ marginBottom: "15px" }}>
+                                        <strong style={{ color: "#666" }}>User Type:</strong>
+                                        <p style={{ color: "#333", fontSize: "16px", margin: "5px 0 0 0" }}>{property.userType || "N/A"}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div>
-                            <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "15px", color: "#333" }}>Contact Owner</h3>
-                            <button
-                                onClick={() => setShowContact(!showContact)}
-                                style={{
-                                    padding: "12px 24px",
-                                    background: "#0078db",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "16px",
-                                    fontWeight: "600",
-                                    cursor: "pointer",
-                                    marginBottom: "15px",
-                                    width: "100%"
-                                }}
-                            >
-                                {showContact ? "Hide Contact Details" : "Show Contact Details"}
-                            </button>
-                            {showContact && (
-                                <div style={{ padding: "20px", background: "#fffbf0", borderRadius: "8px", border: "1px solid #ffd99b" }}>
-                                    <p style={{ margin: "0 0 10px 0", color: "#333" }}>Best time to reach out:</p>
-                                </div>
-                            )}
+                            <div>
+                                <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "15px", color: "#333" }}>Contact Owner</h3>
+                                <button
+                                    onClick={() => setShowContact(!showContact)}
+                                    style={{
+                                        padding: "12px 24px",
+                                        background: "#0078db",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "6px",
+                                        fontSize: "16px",
+                                        fontWeight: "600",
+                                        cursor: "pointer",
+                                        marginBottom: "15px",
+                                        width: "100%"
+                                    }}
+                                >
+                                    {showContact ? "Hide Contact Details" : "Show Contact Details"}
+                                </button>
+                                {showContact && (
+                                    <div style={{ padding: "20px", background: "#fffbf0", borderRadius: "8px", border: "1px solid #ffd99b" }}>
+                                        <p style={{ margin: "0 0 10px 0", color: "#333" }}>Best time to reach out:</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
                 )}
 
                 {/* Featured Dealers Tab */}
                 {activeTab === "Featured Dealers" && (
-                <div style={{ padding: "30px 40px", background: "white" }}>
-                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Featured Dealers</h2>
-                    <div style={{ textAlign: "center", padding: "60px 20px", background: "#f9f9f9", borderRadius: "8px" }}>
-                        <p style={{ fontSize: "18px", color: "#999", margin: "0" }}>No featured dealers available for this property</p>
-                        <p style={{ fontSize: "14px", color: "#ccc", margin: "10px 0 0 0" }}>Featured dealers will appear here once assigned</p>
+                    <div style={{ padding: "30px 40px", background: "white" }}>
+                        <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Featured Dealers & Partners</h2>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "25px" }}>
+                            {[
+                                { name: "DLF Limited", rating: 4.8, projects: 120, est: 1946, color: "#e8f4fd", textColor: "#0078db" },
+                                { name: "Godrej Properties", rating: 4.9, projects: 85, est: 1990, color: "#e6f8ef", textColor: "#10b981" },
+                                { name: "Macrotech (Lodha)", rating: 4.7, projects: 95, est: 1980, color: "#fef3c7", textColor: "#f59e0b" },
+                                { name: "Prestige Estates", rating: 4.6, projects: 110, est: 1986, color: "#f3e8fd", textColor: "#8b5cf6" },
+                                { name: "Oberoi Realty", rating: 4.8, projects: 40, est: 1998, color: "#ffe4e6", textColor: "#f43f5e" },
+                                { name: "Ganesh Housing", rating: 4.5, projects: 60, est: 1991, color: "#e0f2fe", textColor: "#0ea5e9" }
+                            ].map((dealer, idx) => (
+                                <div key={idx} style={{ padding: "25px", background: "#fff", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 4px 15px rgba(0,0,0,0.05)", transition: "transform 0.2s, boxShadow 0.2s", display: "flex", flexDirection: "column" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "15px" }}>
+                                        <div style={{ width: "50px", height: "50px", borderRadius: "10px", background: dealer.color, color: dealer.textColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: "bold" }}>
+                                            {dealer.name.charAt(0)}
+                                        </div>
+                                        <div style={{ background: "#fef08a", padding: "4px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", color: "#854d0e", display: "flex", alignItems: "center", gap: "4px" }}>
+                                            <span>⭐</span> {dealer.rating}
+                                        </div>
+                                    </div>
+                                    <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#333", margin: "0 0 10px 0" }}>{dealer.name}</h3>
+
+                                    {/* Live Stock Price */}
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px", padding: "8px 12px", background: "#f8f9fa", borderRadius: "6px", borderLeft: dealerPrices[dealer.name] ? "3px solid #10b981" : "3px solid #cbd5e1" }}>
+                                        <span style={{ fontSize: "14px", color: "#666" }}>Live Stock:</span>
+                                        <span style={{ fontSize: "16px", fontWeight: "700", color: dealerPrices[dealer.name] ? "#10b981" : "#64748b" }}>
+                                            {dealerPrices[dealer.name] ? `₹${dealerPrices[dealer.name].toFixed(2)}` : 'Loading...'}
+                                        </span>
+                                    </div>
+
+                                    <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
+                                        <div style={{ fontSize: "14px", color: "#666" }}>
+                                            <span style={{ fontWeight: "600", color: "#333" }}>{dealer.projects}+</span> Projects
+                                        </div>
+                                        <div style={{ width: "1px", background: "#ddd" }}></div>
+                                        <div style={{ fontSize: "14px", color: "#666" }}>
+                                            Est. <span style={{ fontWeight: "600", color: "#333" }}>{dealer.est}</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedDealer(dealer);
+                                            setShowDealerModal(true);
+                                        }}
+                                        style={{ marginTop: "auto", padding: "10px", background: "none", border: "1px solid #0078db", color: "#0078db", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }} onMouseOver={(e) => { e.target.style.background = "#0078db"; e.target.style.color = "white"; }} onMouseOut={(e) => { e.target.style.background = "none"; e.target.style.color = "#0078db"; }}>
+                                        Contact Dealer
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Dealer Contact Modal */}
+                        {showDealerModal && selectedDealer && (
+                            <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+                                <div style={{ background: "white", padding: "30px", borderRadius: "12px", maxWidth: "400px", width: "90%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", position: "relative" }}>
+                                    <button
+                                        onClick={() => setShowDealerModal(false)}
+                                        style={{ position: "absolute", top: "15px", right: "15px", background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#999" }}
+                                    >
+                                        ✕
+                                    </button>
+
+                                    <div style={{ textAlign: "center", marginBottom: "25px" }}>
+                                        <div style={{ width: "60px", height: "60px", borderRadius: "12px", background: selectedDealer.color, color: selectedDealer.textColor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", fontWeight: "bold", margin: "0 auto 15px auto" }}>
+                                            {selectedDealer.name.charAt(0)}
+                                        </div>
+                                        <h3 style={{ fontSize: "22px", margin: "0 0 5px 0", color: "#333" }}>Contact {selectedDealer.name}</h3>
+                                        <p style={{ color: "#666", fontSize: "14px", margin: 0 }}>An authorized representative will assist you with your inquiry.</p>
+                                    </div>
+
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        alert(`Thanks for reaching out! A representative from ${selectedDealer.name} will contact you shortly.`);
+                                        setShowDealerModal(false);
+                                    }}>
+                                        <div style={{ marginBottom: "15px" }}>
+                                            <label style={{ display: "block", marginBottom: "5px", fontSize: "14px", fontWeight: "600", color: "#333" }}>Your Name</label>
+                                            <input type="text" required style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "14px", boxSizing: "border-box" }} placeholder="John Doe" />
+                                        </div>
+                                        <div style={{ marginBottom: "15px" }}>
+                                            <label style={{ display: "block", marginBottom: "5px", fontSize: "14px", fontWeight: "600", color: "#333" }}>Email Address</label>
+                                            <input type="email" required style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "14px", boxSizing: "border-box" }} placeholder="john@example.com" />
+                                        </div>
+                                        <div style={{ marginBottom: "20px" }}>
+                                            <label style={{ display: "block", marginBottom: "5px", fontSize: "14px", fontWeight: "600", color: "#333" }}>Phone Number</label>
+                                            <input type="tel" required style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ddd", fontSize: "14px", boxSizing: "border-box" }} placeholder="+91 9876543210" />
+                                        </div>
+                                        <button type="submit" style={{ width: "100%", padding: "12px", background: "#0078db", color: "white", border: "none", borderRadius: "6px", fontSize: "16px", fontWeight: "600", cursor: "pointer", transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = "#005bb5"} onMouseOut={(e) => e.target.style.background = "#0078db"}>
+                                            Request Callback
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                </div>
                 )}
 
                 {/* Recommendations Tab */}
                 {activeTab === "Recommendations" && (
-                <div style={{ padding: "30px 40px", background: "white" }}>
-                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Recommendations</h2>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
-                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
-                            <div style={{ fontSize: "32px", marginBottom: "10px" }}>📍</div>
-                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Location Score</h3>
-                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Well-connected area with good amenities</p>
-                        </div>
-                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
-                            <div style={{ fontSize: "32px", marginBottom: "10px" }}>💰</div>
-                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Price Trend</h3>
-                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Competitive pricing in this locality</p>
-                        </div>
-                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
-                            <div style={{ fontSize: "32px", marginBottom: "10px" }}>🏡</div>
-                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Property Value</h3>
-                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Good investment potential</p>
+                    <div style={{ padding: "30px 40px", background: "white" }}>
+                        <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Recommendations</h2>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
+                                <div style={{ fontSize: "32px", marginBottom: "10px" }}>📍</div>
+                                <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Location Score</h3>
+                                <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Well-connected area with good amenities</p>
+                            </div>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
+                                <div style={{ fontSize: "32px", marginBottom: "10px" }}>💰</div>
+                                <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Price Trend</h3>
+                                <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Competitive pricing in this locality</p>
+                            </div>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", textAlign: "center" }}>
+                                <div style={{ fontSize: "32px", marginBottom: "10px" }}>🏡</div>
+                                <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 8px 0", color: "#333" }}>Property Value</h3>
+                                <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Good investment potential</p>
+                            </div>
                         </div>
                     </div>
-                </div>
                 )}
 
                 {/* Articles Tab */}
                 {activeTab === "Articles" && (
-                <div style={{ padding: "30px 40px", background: "white" }}>
-                    <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Articles & Insights</h2>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" }}>
-                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
-                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Market Insights</h3>
-                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Understanding the real estate market trends in this location and how to make informed decisions.</p>
-                        </div>
-                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
-                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Buying Guide</h3>
-                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Essential tips for buying residential properties and understanding legal requirements.</p>
-                        </div>
-                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
-                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Home Investment</h3>
-                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>How to evaluate a property as an investment and calculate returns on investment.</p>
-                        </div>
-                        <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
-                            <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Legal Aspects</h3>
-                            <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Important documentation and legal checks required before finalizing a property purchase.</p>
+                    <div style={{ padding: "30px 40px", background: "white" }}>
+                        <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "30px", color: "#333" }}>Articles & Insights</h2>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" }}>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                                <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Market Insights</h3>
+                                <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Understanding the real estate market trends in this location and how to make informed decisions.</p>
+                            </div>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                                <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Buying Guide</h3>
+                                <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Essential tips for buying residential properties and understanding legal requirements.</p>
+                            </div>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                                <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Home Investment</h3>
+                                <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>How to evaluate a property as an investment and calculate returns on investment.</p>
+                            </div>
+                            <div style={{ padding: "20px", background: "#f9f9f9", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+                                <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#0078db" }}>Legal Aspects</h3>
+                                <p style={{ fontSize: "14px", color: "#666", margin: "0" }}>Important documentation and legal checks required before finalizing a property purchase.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
                 )}
 
                 {/* Map Section - Always Show */}
@@ -1056,35 +1438,27 @@ const PropertyDetails = () => {
                         </div>
 
                         {displayCoordinates ? (
-                            <>
-                                <div
-                                    id="map-container"
-                                    style={{ width: "100%", height: "100%", borderRadius: "12px", background: "#e8f0f7" }}
-                                ></div>
-
-                                {mapLoading && (
-                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "12px", zIndex: 100 }}>
-                                        <div style={{ background: "white", padding: "30px", borderRadius: "12px", textAlign: "center", boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}>
-                                            <div style={{ fontSize: "32px", marginBottom: "15px" }}>🗺️</div>
-                                            <h3 style={{ margin: "0 0 10px 0", color: "#333" }}>Loading Map</h3>
-                                            <p style={{ margin: "0", color: "#999", fontSize: "14px" }}>Initializing MapmyIndia...</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {mapInitError && (
-                                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "12px", zIndex: 100 }}>
-                                        <div style={{ background: "white", padding: "30px", borderRadius: "12px", textAlign: "center", maxWidth: "400px", boxShadow: "0 8px 24px rgba(0,0,0,0.3)" }}>
-                                            <div style={{ fontSize: "40px", marginBottom: "15px" }}>⚠️</div>
-                                            <h3 style={{ margin: "0 0 10px 0", color: "#d32f2f" }}>Map Error</h3>
-                                            <p style={{ margin: "0 0 15px 0", color: "#666", fontSize: "14px" }}>{mapInitError}</p>
-                                            <div style={{ padding: "15px", background: "#f5f5f5", borderRadius: "8px", textAlign: "left", fontSize: "12px", color: "#666" }}>
-                                                <strong>Location:</strong> {displayCoordinates.lat.toFixed(4)}, {displayCoordinates.lng.toFixed(4)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
+                            <MapContainer
+                                center={[displayCoordinates.lat, displayCoordinates.lng]}
+                                zoom={15}
+                                style={{ width: "100%", height: "100%", borderRadius: "12px", zIndex: 1 }}
+                            >
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
+                                <Marker position={[displayCoordinates.lat, displayCoordinates.lng]}>
+                                    <Popup>Property Location</Popup>
+                                </Marker>
+                                {nearbyPlaces.map((place, index) => (
+                                    <Marker
+                                        key={index}
+                                        position={[place.lat, place.lng]}
+                                    >
+                                        <Popup>{place.name || place.type.charAt(0).toUpperCase() + place.type.slice(1)}</Popup>
+                                    </Marker>
+                                ))}
+                            </MapContainer>
                         ) : (
                             <div style={{
                                 height: "100%",
@@ -1131,7 +1505,7 @@ const PropertyDetails = () => {
 
             {/* Chat Component */}
             {showChat && sellerId && (
-                <Chat 
+                <Chat
                     propertyId={parseInt(id)}
                     receiverId={sellerId}
                     receiverUsername={property.sellerUsername}

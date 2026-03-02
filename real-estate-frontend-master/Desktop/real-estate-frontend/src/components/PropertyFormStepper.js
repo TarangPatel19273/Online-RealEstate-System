@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { getCoordinates } from "../utils/geocode";
-import { mappls } from 'mappls-web-maps';
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import { API_BASE } from "../config";
 import "./PropertyFormStepper.css";
 
 const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false }) => {
@@ -21,7 +24,26 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
   const [currentStep, setCurrentStep] = useState((!editMode && formData && formData.listingType) ? 2 : 1);
   // eslint-disable-next-line no-unused-vars
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [mapplsObject, setMapplsObject] = useState(null);
+  const [mapCenter, setMapCenter] = useState(null);
+
+  // Fix default icon issue for react-leaflet
+  useEffect(() => {
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+      iconUrl: require('leaflet/dist/images/marker-icon.png'),
+      shadowUrl: require('leaflet/dist/images/marker-shadow.png')
+    });
+  }, []);
+
+  // Component to update map view dynamically
+  const MapUpdater = ({ center }) => {
+    const map = useMap();
+    if (center) {
+      map.setView(center, map.getZoom());
+    }
+    return null;
+  };
   const [formState, setFormState] = useState({
     listingType: formData.listingType || "Sell",
     propertyType: formData.propertyType || "Residential",
@@ -134,7 +156,15 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
     setFormState(prev => ({
       ...prev,
       existingImages: prev.existingImages.filter(img => img !== imageName),
-      imagesToDelete: [...prev.imagesToDelete, imageName]
+      imagesToDelete: [...(prev.imagesToDelete || []), imageName]
+    }));
+  };
+
+  const handleRemoveExistingVideo = (videoName) => {
+    setFormState(prev => ({
+      ...prev,
+      existingVideos: prev.existingVideos.filter(vid => vid !== videoName),
+      videosToDelete: [...(prev.videosToDelete || []), videoName]
     }));
   };
 
@@ -191,8 +221,11 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
     if (step === 4) {
       const hasNewImages = formState.images && formState.images.length > 0;
       const hasExistingImages = editMode && formState.existingImages && formState.existingImages.length > 0;
-      if (!hasNewImages && !hasExistingImages) {
-        return "Please upload at least one photo.";
+      const hasNewVideos = formState.videos && formState.videos.length > 0;
+      const hasExistingVideos = editMode && formState.existingVideos && formState.existingVideos.length > 0;
+
+      if (!hasNewImages && !hasExistingImages && !hasNewVideos && !hasExistingVideos) {
+        return "Please upload at least one photo or video.";
       }
     }
 
@@ -409,54 +442,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                           latitude: coords.lat,
                           longitude: coords.lon
                         }));
-
-                        // Initialize Mappls SDK if not already done
-                        const mapplsSDK = new mappls();
-                        const apiKey = "1a1704953408921857138133b3ba2c10";
-
-                        mapplsSDK.initialize(apiKey, { map: true }, () => {
-                          const mapProps = {
-                            center: [coords.lat, coords.lon],
-                            zoom: 15,
-                            draggable: true,
-                            zoomControl: true,
-                            hybrid: true
-                          };
-
-                          const initMap = () => {
-                            if (!document.getElementById('map-container-stepper')) {
-                              setTimeout(initMap, 100);
-                              return;
-                            }
-
-                            // Clear previous map instance if it exists
-                            if (mapplsObject) {
-                              // Need to clean up old map properly - mapmyindia doesn't have an obvious destroy method,
-                              // but we re-create it by replacing the container's contents.
-                            }
-
-                            const map = new mapplsSDK.Map('map-container-stepper', mapProps);
-                            setMapplsObject(map);
-
-                            const marker = new mapplsSDK.Marker({
-                              map: map,
-                              position: [coords.lat, coords.lon],
-                              draggable: true
-                            });
-
-                            marker.addListener('dragend', function (e) {
-                              const pos = marker.getPosition();
-                              setFormState(prev => ({
-                                ...prev,
-                                latitude: pos.lat,
-                                longitude: pos.lng
-                              }));
-                            });
-                          };
-
-                          setTimeout(initMap, 100);
-                        });
-
+                        setMapCenter([coords.lat, coords.lon]);
                       } else {
                         alert("Could not find coordinates for this address.");
                       }
@@ -486,9 +472,35 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                     Drag the marker to adjust the exact location of your property.
                   </p>
                   <div
-                    id="map-container-stepper"
-                    style={{ width: "100%", height: "300px", borderRadius: "8px", border: "1px solid #ddd" }}
-                  ></div>
+                    style={{ width: "100%", height: "300px", borderRadius: "8px", border: "1px solid #ddd", overflow: "hidden" }}
+                  >
+                    <MapContainer
+                      center={mapCenter || [formState.latitude, formState.longitude]}
+                      zoom={15}
+                      style={{ height: "100%", width: "100%" }}
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      />
+                      <MapUpdater center={mapCenter} />
+                      <Marker
+                        position={[formState.latitude, formState.longitude]}
+                        draggable={true}
+                        eventHandlers={{
+                          dragend: (e) => {
+                            const marker = e.target;
+                            const position = marker.getLatLng();
+                            setFormState(prev => ({
+                              ...prev,
+                              latitude: position.lat,
+                              longitude: position.lng
+                            }));
+                          },
+                        }}
+                      />
+                    </MapContainer>
+                  </div>
                 </div>
               )}
             </div>
@@ -702,13 +714,50 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                     {formState.existingImages.map((img, idx) => (
                       <div key={`${img}-${idx}`} style={{ position: "relative" }}>
                         <img
-                          src={`http://localhost:8080/api/properties/images/${encodeURIComponent(img)}`}
+                          src={`${API_BASE}/api/properties/images/${encodeURIComponent(img)}`}
                           alt="existing"
                           style={{ width: "80px", height: "60px", objectFit: "cover", borderRadius: "6px" }}
                         />
                         <button
                           type="button"
                           onClick={() => handleRemoveExistingImage(img)}
+                          style={{
+                            position: "absolute",
+                            top: "-6px",
+                            right: "-6px",
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            border: "none",
+                            background: "#dc3545",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            lineHeight: "20px"
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {editMode && formState.existingVideos && formState.existingVideos.length > 0 && (
+                <div className="files-info" style={{ marginBottom: "12px" }}>
+                  <div style={{ fontWeight: 600, marginBottom: "8px" }}>Existing Videos</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                    {formState.existingVideos.map((vid, idx) => (
+                      <div key={`${vid}-${idx}`} style={{ position: "relative" }}>
+                        <video
+                          src={`${API_BASE}/api/properties/videos/${encodeURIComponent(vid)}`}
+                          style={{ width: "120px", height: "80px", objectFit: "cover", borderRadius: "6px" }}
+                          controls
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingVideo(vid)}
                           style={{
                             position: "absolute",
                             top: "-6px",
@@ -748,13 +797,34 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
               </div>
 
               {formState.images && formState.images.length > 0 && (
-                <div className="files-info">
+                <div className="files-info" style={{ marginBottom: "20px" }}>
                   ✅ {formState.images.length} photo(s) selected
                 </div>
               )}
 
+              <div className="upload-area">
+                <label className="file-input-label">
+                  <div className="upload-icon">🎥</div>
+                  <span className="upload-text">Click to upload videos / voice-overs</span>
+                  <span className="upload-hint">MP4, WebM (Max 50MB each)</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="video/*"
+                    onChange={(e) => handleInputChange("videos", e.target.files)}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+
+              {formState.videos && formState.videos.length > 0 && (
+                <div className="files-info">
+                  ✅ {formState.videos.length} video(s) selected
+                </div>
+              )}
+
               <div className="info-box">
-                <p>{editMode ? "📌 You can keep existing photos or add new ones." : "📌 Upload at least 5 high-quality photos for better visibility"}</p>
+                <p>{editMode ? "📌 You can keep existing photos/videos or add new ones." : "📌 Upload at least 1 high-quality photo for better visibility"}</p>
               </div>
             </div>
           </div>

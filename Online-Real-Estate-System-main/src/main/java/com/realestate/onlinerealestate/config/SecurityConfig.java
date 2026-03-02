@@ -38,6 +38,11 @@ public class SecurityConfig {
                         // ✅ PROPERTY UPLOAD API
                         .requestMatchers("/api/properties/**").permitAll()
 
+                        // ✅ LOAN API (Documents & Public endpoints)
+                        .requestMatchers("/api/loans/documents/**").permitAll()
+                        .requestMatchers("/api/loans/apply").permitAll()
+                        .requestMatchers("/api/loans/settings").permitAll()
+
                         // ✅ CHAT REST APIs - REQUIRES AUTHENTICATION
                         .requestMatchers("/chat/**").authenticated()
 
@@ -49,6 +54,9 @@ public class SecurityConfig {
 
                         // ✅ STATIC RESOURCES (Images)
                         .requestMatchers("/uploads/**").permitAll()
+
+                        // ✅ STOCK PRICE FETCHING
+                        .requestMatchers("/api/stocks/**").permitAll()
 
                         // ✅ OPTIONS (CORS preflight)
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
@@ -69,15 +77,14 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of("http://localhost:3000"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of(
-            "Content-Type", 
-            "Authorization", 
-            "X-Requested-With",
-            "userId",
-            "X-User-Id",
-            "Sec-WebSocket-Extensions",
-            "Sec-WebSocket-Key",
-            "Sec-WebSocket-Version"
-        ));
+                "Content-Type",
+                "Authorization",
+                "X-Requested-With",
+                "userId",
+                "X-User-Id",
+                "Sec-WebSocket-Extensions",
+                "Sec-WebSocket-Key",
+                "Sec-WebSocket-Version"));
         config.setExposedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

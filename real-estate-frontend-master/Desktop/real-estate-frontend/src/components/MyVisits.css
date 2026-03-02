@@ -1,0 +1,168 @@
+.myvisits-page {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.myvisits-container {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.page-title {
+    margin: 0;
+    color: #333;
+    font-size: 28px;
+}
+
+.page-subtitle {
+    color: #666;
+    margin-top: 5px;
+    margin-bottom: 30px;
+}
+
+.loading-state,
+.empty-state {
+    background: white;
+    border-radius: 12px;
+    padding: 50px 20px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.empty-state h3 {
+    margin: 0 0 10px;
+    color: #333;
+}
+
+.empty-state p {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.btn-browse {
+    background: #0078db;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-browse:hover {
+    background: #005ca8;
+}
+
+.visits-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+}
+
+.visits-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.visits-table th,
+.visits-table td {
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid #efefef;
+}
+
+.visits-table th {
+    background: #fdfdfd;
+    color: #666;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.visits-table tr:last-child td {
+    border-bottom: none;
+}
+
+.property-cell {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.property-mini-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.property-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.property-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.property-price {
+    color: #0078db;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.date-cell {
+    font-weight: 500;
+    color: #444;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.btn-view {
+    background: transparent;
+    color: #0078db;
+    border: 1px solid #0078db;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-view:hover {
+    background: #0078db;
+    color: white;
+}

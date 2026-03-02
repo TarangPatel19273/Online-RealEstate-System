@@ -38,6 +38,15 @@ export const deleteProperty = (id) => {
   return axiosInstance.delete(`/api/properties/user/${id}`);
 };
 
+// Upload media to existing property
+export const uploadMedia = (id, formData) => {
+  return axiosInstance.put(`/api/properties/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
 const propertyService = {
   getAllProperties,
   getMyProperties,
@@ -45,6 +54,7 @@ const propertyService = {
   uploadProperty,
   updateProperty,
   deleteProperty,
+  uploadMedia,
   searchProperties: (queryParams) => {
     return axiosInstance.get('/api/properties/search', { params: queryParams });
   },

@@ -64,8 +64,27 @@ public class Property {
     @Column(name = "image_url")
     private List<String> imageUrls;
 
+    // ✅ STORE VIDEO NAMES
+    @ElementCollection
+    @CollectionTable(name = "property_videos", joinColumns = @JoinColumn(name = "property_id"))
+    @Column(name = "video_name")
+    private List<String> videoNames;
+
+    @ElementCollection
+    @CollectionTable(name = "property_video_urls", joinColumns = @JoinColumn(name = "property_id"))
+    @Column(name = "video_url")
+    private List<String> videoUrls;
+
     private Double latitude;
     private Double longitude;
+
+    private boolean featured = false;
+    private boolean verified = false;
+    private boolean rejected = false;
+    private boolean approved = false;
+
+    @Column(length = 20)
+    private String propertyStatus = "Available"; // Available, Sold, Rented
 
     // ===== getters & setters =====
 
@@ -301,6 +320,22 @@ public class Property {
         this.imageUrls = imageUrls;
     }
 
+    public List<String> getVideoNames() {
+        return videoNames;
+    }
+
+    public void setVideoNames(List<String> videoNames) {
+        this.videoNames = videoNames;
+    }
+
+    public List<String> getVideoUrls() {
+        return videoUrls;
+    }
+
+    public void setVideoUrls(List<String> videoUrls) {
+        this.videoUrls = videoUrls;
+    }
+
     public User getUser() {
         return user;
     }
@@ -311,5 +346,45 @@ public class Property {
 
     public Long getUserId() {
         return user != null ? user.getId() : null;
+    }
+
+    public boolean isFeatured() {
+        return featured;
+    }
+
+    public void setFeatured(boolean featured) {
+        this.featured = featured;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
+
+    public boolean isRejected() {
+        return rejected;
+    }
+
+    public void setRejected(boolean rejected) {
+        this.rejected = rejected;
+    }
+
+    public boolean isApproved() {
+        return approved;
+    }
+
+    public void setApproved(boolean approved) {
+        this.approved = approved;
+    }
+
+    public String getPropertyStatus() {
+        return propertyStatus;
+    }
+
+    public void setPropertyStatus(String propertyStatus) {
+        this.propertyStatus = propertyStatus;
     }
 }

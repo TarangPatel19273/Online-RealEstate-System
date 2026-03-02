@@ -20,4 +20,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     List<Property> findByLocationContainingIgnoreCaseAndType(String location, String type);
 
     List<Property> findByLocationContainingIgnoreCaseAndCategory(String location, String category);
+
+    long countByPropertyStatus(String propertyStatus);
+
+    long countByType(String type);
 }

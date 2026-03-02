@@ -14,7 +14,7 @@ import com.realestate.onlinerealestate.service.UserService;
 
 @RestController
 @RequestMapping("/api/user")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -97,7 +97,7 @@ public class UserController {
         try {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-            
+
             return ResponseEntity.ok(new UserIdResponse(user.getId(), user.getUsername(), user.getEmail()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());

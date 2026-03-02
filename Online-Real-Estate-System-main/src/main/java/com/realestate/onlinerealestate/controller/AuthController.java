@@ -6,8 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import java.util.Map;
+import java.util.UUID;
 
 import com.realestate.onlinerealestate.dto.LoginRequest;
+import com.realestate.onlinerealestate.dto.GoogleLoginRequest;
 import com.realestate.onlinerealestate.dto.OtpRequest;
 import com.realestate.onlinerealestate.dto.SignupRequest;
 import com.realestate.onlinerealestate.model.OtpVerification;
@@ -20,7 +24,7 @@ import com.realestate.onlinerealestate.service.OtpService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired
@@ -99,6 +103,12 @@ public class AuthController {
         user.setPassword(otpData.getPassword());
         user.setVerified(true);
         user.setEmailVerified(true);
+
+        if (request.isAdminRecord() || "ompppp1234@gmail.com".equals(otpData.getEmail())) {
+            user.setRole("ADMIN");
+        } else {
+            user.setRole("USER");
+        }
 
         userRepository.save(user);
 
@@ -180,7 +190,8 @@ public class AuthController {
     // RESET PASSWORD
     // =========================
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody com.realestate.onlinerealestate.dto.ResetPasswordRequest request) {
+    public ResponseEntity<?> resetPassword(
+            @RequestBody com.realestate.onlinerealestate.dto.ResetPasswordRequest request) {
 
         OtpVerification otpData = otpRepository
                 .findTopByEmailOrderByExpiryTimeDesc(request.getEmail())
@@ -205,5 +216,54 @@ public class AuthController {
         otpRepository.delete(otpData);
 
         return ResponseEntity.ok("Password reset successfully");
+    }
+
+    // =========================
+    // GOOGLE LOGIN
+    // =========================
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
+        try {
+            // Verify token with Google's tokeninfo endpoint
+            String tokenUrl = "https://oauth2.googleapis.com/tokeninfo?id_token=" + request.getToken();
+            RestTemplate restTemplate = new RestTemplate();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> tokenInfo = restTemplate.getForObject(tokenUrl, Map.class);
+
+            if (tokenInfo == null || !tokenInfo.containsKey("email")) {
+                return ResponseEntity.badRequest().body("Invalid Google Token");
+            }
+
+            String email = (String) tokenInfo.get("email");
+            String name = (String) tokenInfo.get("name");
+            String picture = (String) tokenInfo.get("picture");
+
+            // Find existing user or create a new one
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) {
+                user = new User();
+                user.setEmail(email);
+                // Create a unique username from email prefix and random string
+                String baseUsername = email.split("@")[0].replaceAll("[^a-zA-Z0-9]", "");
+                user.setUsername(baseUsername + "_" + UUID.randomUUID().toString().substring(0, 5));
+                // Set a random password for Google-authenticated users (they login via Google
+                // anyway)
+                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                user.setFullName(name);
+                user.setProfilePicture(picture);
+                user.setVerified(true);
+                user.setEmailVerified(true);
+
+                userRepository.save(user);
+            }
+
+            // Generate standard JWT token for our system
+            String jwtToken = jwtUtil.generateToken(user.getEmail());
+
+            return ResponseEntity.ok(new com.realestate.onlinerealestate.dto.AuthResponse(jwtToken, user));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error verifying Google token: " + e.getMessage());
+        }
     }
 }

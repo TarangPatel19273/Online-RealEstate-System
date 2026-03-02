@@ -37,7 +37,7 @@ import com.realestate.onlinerealestate.security.JwtUtil;
 
 @RestController
 @RequestMapping("/api/properties")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class PropertyController {
 
     private static final Logger logger = LoggerFactory.getLogger(PropertyController.class);
@@ -80,7 +80,8 @@ public class PropertyController {
             @RequestParam(required = false) List<String> amenities,
             @RequestParam(required = false) Double latitude,
             @RequestParam(required = false) Double longitude,
-            @RequestParam("images") List<MultipartFile> images,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "videos", required = false) List<MultipartFile> videos,
             @RequestHeader("Authorization") String authHeader) {
 
         try {
@@ -107,6 +108,10 @@ public class PropertyController {
             Path uploadPath = Paths.get("uploads").toAbsolutePath().normalize();
             String uploadDir = uploadPath.toString() + "/";
             Files.createDirectories(uploadPath);
+
+            Path videoPath = Paths.get("uploads", "videos").toAbsolutePath().normalize();
+            String videoUploadDir = videoPath.toString() + "/";
+            Files.createDirectories(videoPath);
 
             Property property = new Property();
             property.setTitle(title);
@@ -139,17 +144,39 @@ public class PropertyController {
 
             List<String> imageNames = new ArrayList<>();
 
-            for (MultipartFile file : images) {
-                String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                Path filePath = Paths.get(uploadDir, fileName);
-                Files.copy(
-                        file.getInputStream(),
-                        filePath,
-                        StandardCopyOption.REPLACE_EXISTING);
-                imageNames.add(fileName);
+            if (images != null) {
+                for (MultipartFile file : images) {
+                    if (!file.isEmpty()) {
+                        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+                        Path filePath = Paths.get(uploadDir, fileName);
+                        Files.copy(
+                                file.getInputStream(),
+                                filePath,
+                                StandardCopyOption.REPLACE_EXISTING);
+                        imageNames.add(fileName);
+                    }
+                }
             }
 
             property.setImageNames(imageNames);
+
+            List<String> storedVideoNames = new ArrayList<>();
+            if (videos != null) {
+                for (MultipartFile file : videos) {
+                    if (!file.isEmpty()) {
+                        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+                        Path filePath = Paths.get(videoUploadDir, fileName);
+                        Files.copy(
+                                file.getInputStream(),
+                                filePath,
+                                StandardCopyOption.REPLACE_EXISTING);
+                        storedVideoNames.add(fileName);
+                    }
+                }
+            }
+
+            property.setVideoNames(storedVideoNames);
+
             propertyRepository.save(property);
 
             return ResponseEntity.ok("Property uploaded successfully");
@@ -200,6 +227,9 @@ public class PropertyController {
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
 
+            List<String> propertyVideoNames = property.getVideoNames();
+            dto.setVideoUrls(propertyVideoNames != null ? propertyVideoNames : new ArrayList<>());
+
             if (property.getUser() != null) {
                 dto.setUserId(property.getUser().getId());
                 dto.setSellerEmail(property.getUser().getEmail());
@@ -247,6 +277,7 @@ public class PropertyController {
             dto.setLatitude(property.getLatitude());
             dto.setLongitude(property.getLongitude());
             dto.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
+            dto.setVideoUrls(property.getVideoNames() != null ? property.getVideoNames() : new ArrayList<>());
 
             if (property.getUser() != null) {
                 dto.setUserId(property.getUser().getId());
@@ -323,6 +354,9 @@ public class PropertyController {
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
 
+            List<String> propVideoNames = property.getVideoNames();
+            dto.setVideoUrls(propVideoNames != null ? propVideoNames : new ArrayList<>());
+
             if (property.getUser() != null) {
                 dto.setUserId(property.getUser().getId());
                 dto.setSellerEmail(property.getUser().getEmail());
@@ -374,6 +408,9 @@ public class PropertyController {
 
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
+
+            List<String> propVideoNames = property.getVideoNames();
+            dto.setVideoUrls(propVideoNames != null ? propVideoNames : new ArrayList<>());
 
             if (property.getUser() != null) {
                 dto.setUserId(property.getUser().getId());
@@ -432,6 +469,50 @@ public class PropertyController {
     }
 
     // ==========================
+    // SERVE VIDEO FILES
+    // ==========================
+    @GetMapping("/videos/{filename:.+}")
+    public ResponseEntity<Resource> serveVideo(@PathVariable String filename) {
+        try {
+            // Use persistent path relative to workspace
+            Path uploadPath = Paths.get("uploads", "videos").toAbsolutePath().normalize();
+            Path filePath = uploadPath.resolve(filename).normalize();
+
+            logger.info("Serving video file: {} from {}", filename, filePath);
+
+            // Security check: ensure the file is within uploads directory
+            if (!filePath.startsWith(uploadPath)) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            java.net.URI fileUri = filePath.toAbsolutePath().normalize().toUri();
+            if (fileUri == null) {
+                return ResponseEntity.internalServerError().build();
+            }
+            Resource resource = new UrlResource(fileUri);
+
+            if (resource.exists() && resource.isReadable()) {
+                String contentType = Files.probeContentType(filePath);
+                if (contentType == null) {
+                    contentType = "video/mp4"; // Default to mp4 if unknown
+                }
+
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .header(HttpHeaders.CONTENT_DISPOSITION,
+                                "inline; filename=\"" + resource.getFilename() + "\"")
+                        .body(resource);
+            } else {
+                System.out.println("File not found or not readable: " + filePath);
+                return ResponseEntity.notFound().build();
+            }
+        } catch (IOException e) {
+            logger.error("Error serving video file", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ==========================
     // DELETE PROPERTY (FOR CLEANUP)
     // ==========================
     @DeleteMapping("/{id}")
@@ -478,6 +559,8 @@ public class PropertyController {
             @RequestParam(required = false) List<String> amenities,
             @RequestParam(required = false) List<MultipartFile> images,
             @RequestParam(required = false) List<String> imagesToDelete,
+            @RequestParam(required = false) List<MultipartFile> videos,
+            @RequestParam(required = false) List<String> videosToDelete,
             @RequestHeader("Authorization") String authHeader) {
         logger.info("Received update request for property id: {}", id);
 
@@ -630,6 +713,49 @@ public class PropertyController {
                 property.setImageNames(currentImages);
             }
 
+            List<String> currentVideos = property.getVideoNames();
+            if (currentVideos == null) {
+                currentVideos = new ArrayList<>();
+            }
+
+            // Handle video deletions
+            if (videosToDelete != null && !videosToDelete.isEmpty()) {
+                Path videoPath = Paths.get("uploads", "videos").toAbsolutePath().normalize();
+
+                for (String videoName : videosToDelete) {
+                    if (currentVideos.contains(videoName)) {
+                        currentVideos.remove(videoName);
+                        // Optional: delete from filesystem
+                        try {
+                            Path filePath = videoPath.resolve(videoName);
+                            Files.deleteIfExists(filePath);
+                        } catch (IOException e) {
+                            logger.warn("Failed to delete video file: " + videoName);
+                        }
+                        changed = true;
+                    }
+                }
+                property.setVideoNames(currentVideos);
+            }
+
+            // Handle new videos
+            if (videos != null && !videos.isEmpty()) {
+                Path videoPath = Paths.get("uploads", "videos").toAbsolutePath().normalize();
+                String videoUploadDir = videoPath.toString() + "/";
+                Files.createDirectories(videoPath);
+
+                for (MultipartFile file : videos) {
+                    if (!file.isEmpty()) {
+                        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+                        Path filePath = Paths.get(videoUploadDir, fileName);
+                        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                        currentVideos.add(fileName);
+                        changed = true;
+                    }
+                }
+                property.setVideoNames(currentVideos);
+            }
+
             if (changed) {
                 propertyRepository.save(property);
                 logger.info("Property {} updated successfully", id);
@@ -661,6 +787,7 @@ public class PropertyController {
             response.setPropertyAge(property.getPropertyAge());
             response.setAmenities(property.getAmenities());
             response.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
+            response.setVideoUrls(property.getVideoNames() != null ? property.getVideoNames() : new ArrayList<>());
             if (property.getUser() != null) {
                 response.setUserId(property.getUser().getId());
                 response.setSellerEmail(property.getUser().getEmail());
@@ -762,6 +889,9 @@ public class PropertyController {
                 List<String> imageNames = property.getImageNames();
                 dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
 
+                List<String> propVideoNames = property.getVideoNames();
+                dto.setVideoUrls(propVideoNames != null ? propVideoNames : new ArrayList<>());
+
                 if (property.getUser() != null) {
                     dto.setUserId(property.getUser().getId());
                     dto.setSellerEmail(property.getUser().getEmail());
@@ -777,5 +907,4 @@ public class PropertyController {
             return ResponseEntity.status(401).body("Unauthorized");
         }
     }
-
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { signup } from "../services/authService";
+import { signup, googleLogin } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
 
@@ -13,95 +13,77 @@ function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) { navigate("/"); }
-    
-    // Load Google Sign-In script
-    loadGoogleSignin();
+
+    // Initialize Google Sign-In when SDK is loaded
+    const renderGoogleButton = () => {
+      const initGoogle = setInterval(() => {
+        const buttonEle = document.getElementById('google-signup-button');
+        if (window.google && window.google.accounts && buttonEle) {
+          clearInterval(initGoogle);
+          window.google.accounts.id.initialize({
+            client_id: "167248250288-n6af1ihtmr6hvcfc1npjdq1d7h0a64u3.apps.googleusercontent.com",
+            callback: handleGoogleSignUp,
+          });
+          window.google.accounts.id.renderButton(
+            buttonEle,
+            { theme: 'outline', size: 'large', width: '300px' }
+          );
+        }
+      }, 100);
+    };
+
+    const loadGoogleScript = () => {
+      if (document.getElementById('google-gsi-client')) {
+        renderGoogleButton();
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'google-gsi-client';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+
+      script.onload = renderGoogleButton;
+    };
+
+    loadGoogleScript();
   }, [navigate]);
 
-  const loadGoogleSignin = () => {
-    // Add Google Sign-In script
-    const script = document.createElement("script");
-    script.src = "https://apis.google.com/js/platform.js";
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-
-    // Initialize Google Sign-In
-    window.onload = () => {
-      if (window.gapi) {
-        window.gapi.load("auth2", () => {
-          window.gapi.auth2.init({
-            client_id: "167248250288-n6af1ihtmr6hvcfc1npjdq1d7h0a64u3.apps.googleusercontent.com",
-            scope: "profile email",
-          });
-        });
-      }
-    };
-  };
-
-  const handleGoogleSignUp = (response) => {
+  const handleGoogleSignUp = async (response) => {
     try {
       setGoogleLoading(true);
       const { credential } = response;
-      
+
       if (credential) {
-        // Decode the JWT token
-        const base64Url = credential.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        const userInfo = JSON.parse(jsonPayload);
-        
-        console.log("Google User Info:", userInfo);
         setMessage("Signing up with Google...");
-        
-        // Store user info and token
-        localStorage.setItem("token", credential);
-        localStorage.setItem("user", JSON.stringify({
-          id: userInfo.sub,
-          username: userInfo.name,
-          email: userInfo.email,
-          avatar: userInfo.picture,
-          provider: "google"
-        }));
-        
-        setTimeout(() => {
-          navigate("/");
-        }, 1500);
+        const res = await googleLogin(credential);
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+
+        navigate("/");
       }
     } catch (err) {
       console.error("Google Sign-Up failed:", err);
-      setMessage("Google Sign-Up failed. Please try again.");
+      if (typeof err.response?.data === "string") {
+        setMessage(err.response.data);
+      } else if (err.response?.data?.error) {
+        setMessage(err.response.data.error);
+      } else {
+        setMessage("Google Sign-Up failed. Please try again.");
+      }
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  const handleGoogleSignUpClick = () => {
-    if (window.google) {
-      window.google.accounts.id.renderButton(
-        document.getElementById('google-signup-button'),
-        { 
-          type: 'standard', 
-          theme: 'outline', 
-          size: 'large',
-          width: '100%'
-        }
-      );
-      
-      window.google.accounts.id.initialize({
-        client_id: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
-        callback: handleGoogleSignUp,
-      });
-    }
-  };
+
 
   const calculatePasswordStrength = (pwd) => {
     let strength = 0;
@@ -137,7 +119,7 @@ function Signup() {
       setMessage("");
       const res = await signup({ username, email, password });
       setMessage(res.data);
-      navigate("/verify-otp", { state: { email } });
+      navigate("/verify-otp", { state: { email, isAdmin } });
     } catch (err) {
       console.error(err);
       if (typeof err.response?.data === "string") {
@@ -176,7 +158,7 @@ function Signup() {
           <div className="illustration-icon">🏠</div>
           <h1 className="illustration-title">EstateHub</h1>
           <p className="illustration-subtitle">Your trusted real estate partner</p>
-          
+
           <div className="feature-list">
             <div className="feature-item">
               <span className="feature-icon">✨</span>
@@ -226,11 +208,11 @@ function Signup() {
               <label className="form-label">Username</label>
               <div className="input-field">
                 <span className="input-icon-left">👤</span>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="Choose a unique username" 
-                  value={username} 
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Choose a unique username"
+                  value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
                 />
@@ -241,11 +223,11 @@ function Signup() {
               <label className="form-label">Email Address</label>
               <div className="input-field">
                 <span className="input-icon-left">📧</span>
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  placeholder="your@email.com" 
-                  value={email} 
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="your@email.com"
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                 />
@@ -256,22 +238,22 @@ function Signup() {
               <label className="form-label">Password</label>
               <div className="input-field">
                 <span className="input-icon-left">🔒</span>
-                <input 
+                <input
                   type="password"
-                  className="form-input" 
-                  placeholder="Create a strong password" 
-                  value={password} 
+                  className="form-input"
+                  placeholder="Create a strong password"
+                  value={password}
                   onChange={handlePasswordChange}
                   autoComplete="new-password"
                 />
               </div>
               {password && (
                 <div className="strength-indicator">
-                  <div className="strength-bar" style={{width: `${(passwordStrength / 5) * 100}%`, backgroundColor: getStrengthColor()}}></div>
+                  <div className="strength-bar" style={{ width: `${(passwordStrength / 5) * 100}%`, backgroundColor: getStrengthColor() }}></div>
                 </div>
               )}
               {password && (
-                <p className="strength-text" style={{color: getStrengthColor()}}>
+                <p className="strength-text" style={{ color: getStrengthColor() }}>
                   Strength: <strong>{getStrengthLabel()}</strong>
                 </p>
               )}
@@ -281,11 +263,11 @@ function Signup() {
               <label className="form-label">Confirm Password</label>
               <div className="input-field">
                 <span className="input-icon-left">🔑</span>
-                <input 
+                <input
                   type="password"
-                  className="form-input" 
-                  placeholder="Re-enter your password" 
-                  value={confirmPassword} 
+                  className="form-input"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"
                 />
@@ -295,10 +277,14 @@ function Signup() {
               </div>
             </div>
 
-            <div className="terms-agreement">
+            <div className="terms-agreement" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <label className="checkbox">
                 <input type="checkbox" required />
                 <span>I agree to the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong></span>
+              </label>
+              <label className="checkbox">
+                <input type="checkbox" checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} />
+                <span>Register as Admin (For Testing)</span>
               </label>
             </div>
 
@@ -330,18 +316,8 @@ function Signup() {
             <span>or sign up with</span>
           </div>
 
-          <div className="social-login">
-            <button 
-              type="button" 
-              className="social-button google"
-              onClick={handleGoogleSignUpClick}
-              disabled={googleLoading}
-            >
-              <svg className="social-icon" viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032 c0-3.331,2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.461,2.268,15.365,1.25,12.545,1.25 c-6.343,0-11.5,5.157-11.5,11.5c0,6.343,5.157,11.5,11.5,11.5c6.343,0,11.5-5.157,11.5-11.5c0-0.468-0.033-0.94-0.112-1.39H12.545z"/>
-              </svg>
-              <span>{googleLoading ? "Signing up..." : "Sign up with Google"}</span>
-            </button>
+          <div className="social-login" style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+            <div id="google-signup-button"></div>
           </div>
 
           <div className="form-footer">
@@ -350,7 +326,6 @@ function Signup() {
         </div>
       </div>
 
-      <script src="https://accounts.google.com/gsi/client" async defer></script>
     </div>
   );
 }

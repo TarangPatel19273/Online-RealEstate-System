@@ -6,10 +6,13 @@ import "./Home.css";
 
 const Home = () => {
   const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const locationHook = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState("Pune");
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState("Buy");
   const [currentUser, setCurrentUser] = useState(null);
@@ -77,6 +80,8 @@ const Home = () => {
 
     console.log("Fetching with filters:", filters);
 
+    setLoading(true);
+
     propertyService.searchProperties(filters)
       .then(res => {
         const data = res.data || [];
@@ -91,6 +96,9 @@ const Home = () => {
       .catch(err => {
         console.error("Error fetching properties:", err);
         setProperties([]);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, [locationHook.search, activeTab]);
 
@@ -138,34 +146,62 @@ const Home = () => {
             <div className="search-tabs">
               <span
                 className={`search-tab ${activeTab === "Buy" ? "active" : ""}`}
-                onClick={() => navigate(`/?type=Buy${searchQuery ? `&location=${encodeURIComponent(searchQuery)}` : ""}`)}
+                onClick={() => navigate(`/?type=Buy`)}
               >
                 Buy
               </span>
               <span
                 className={`search-tab ${activeTab === "Rent" ? "active" : ""}`}
-                onClick={() => navigate(`/?type=Rent${searchQuery ? `&location=${encodeURIComponent(searchQuery)}` : ""}`)}
+                onClick={() => navigate(`/?type=Rent`)}
               >
                 Rent
               </span>
               <span
                 className={`search-tab ${activeTab === "Commercial" ? "active" : ""}`}
-                onClick={() => navigate(`/?type=Commercial${searchQuery ? `&location=${encodeURIComponent(searchQuery)}` : ""}`)}
+                onClick={() => navigate(`/?type=Commercial`)}
               >
                 Commercial
               </span>
             </div>
-            <form className="hero-search-bar" onSubmit={handleSearch}>
+            <form className="acres-search-bar" onSubmit={handleSearch}>
+              <div
+                className="search-dropdown city-select"
+                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+                style={{ position: 'relative' }}
+              >
+                <span>{selectedCity}</span>
+                <span className="dropdown-arrow">▼</span>
+
+                {isCityDropdownOpen && (
+                  <div className="city-dropdown-menu">
+                    {["All Cities", "Pune", "Mumbai", "Bangalore", "Delhi", "Hyderabad"].map(city => (
+                      <div
+                        key={city}
+                        className="city-option"
+                        onClick={() => {
+                          setSelectedCity(city);
+                          setIsCityDropdownOpen(false);
+                        }}
+                      >
+                        {city}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="search-divider"></div>
+
               <div className="search-input-wrapper">
-                <span className="search-icon">📍</span>
                 <input
                   type="text"
-                  placeholder="Search by city, locality, or project..."
+                  placeholder="Search by locality, project, or landmark..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button type="submit" className="hero-search-btn">Search</button>
+              <button type="submit" className="acres-search-btn">
+                <span className="search-icon">🔍</span> Search
+              </button>
             </form>
           </div>
         </div>
@@ -175,120 +211,129 @@ const Home = () => {
       <div className="content-container">
         <h2 className="section-title">Latest Properties</h2>
 
-        <div className="properties-grid">
-          {properties
-            .filter(property => {
-              if (activeTab === "Buy") return property.type === "Sell";
-              if (activeTab === "Rent") return property.type === "Rent";
-              if (activeTab === "Commercial") return property.category === "Commercial";
-              return true;
-            })
-            .map(property => {
-              const currentIndex = currentImageIndex[property.id] || 0;
-              const hasImages = property.imageUrls && property.imageUrls.length > 0;
-              const totalImages = hasImages ? property.imageUrls.length : 0;
-
-              const isOwner = currentUser && (
-                currentUser.email === property.sellerEmail ||
-                currentUser.id === property.userId
-              );
-
-
-              const isSelected = selectedProperties.includes(property.id);
-
-              return (
-                <div key={property.id} className="property-card" onClick={() => navigate(`/property/${property.id}`)}>
-                  {/* Compare Checkbox */}
-                  <div className="compare-checkbox-wrapper" onClick={(e) => {
-                    e.stopPropagation();
-                    handlePropertySelect(property.id);
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => { }} // Handled by wrapper click
-                      className="compare-checkbox"
-                    />
-                    <span className="compare-label">Compare</span>
-                  </div>
-                  {/* IMAGE CAROUSEL */}
-                  <div className="card-image-wrapper">
-                    {hasImages ? (
-                      <>
-                        <img
-                          src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
-                          alt={property.title}
-                          className="card-image"
-                          onError={(e) => {
-                            e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
-                          }}
-                        />
-                        {totalImages > 1 && (
-                          <>
-                            <button className="card-nav-btn prev" onClick={(e) => handlePrevImage(e, property.id, totalImages)}>‹</button>
-                            <button className="card-nav-btn next" onClick={(e) => handleNextImage(e, property.id, totalImages)}>›</button>
-                          </>
-                        )}
-                        <div className="image-counter-badge">
-                          📷 {totalImages}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="no-image-placeholder">
-                        <span>🏠 No Photos</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* DETAILS */}
-                  <div className="card-details">
-                    <div className="card-header">
-                      <h3 className="card-price">₹ {property.price}</h3>
-                      <span className="card-title">{property.title}</span>
-                    </div>
-
-                    <div className="card-location">
-                      📍 {property.location}
-                    </div>
-
-                    <p className="card-description">
-                      {property.description?.length > 80
-                        ? property.description.substring(0, 80) + "..."
-                        : property.description}
-                    </p>
-
-                    <div className="card-footer">
-                      <span className="card-tag" style={{ backgroundColor: property.type === "Sell" ? "#007bff" : "#28a745", color: "white" }}>
-                        {property.type === "Sell" ? "For Sale" : "For Rent"}
-                      </span>
-                      <span className="card-tag" style={{ marginLeft: "5px", backgroundColor: "#6c757d", color: "white" }}>
-                        {property.category}
-                      </span>
-                      <div className="card-actions">
-                        {!isOwner && (
-                          <button className="btn-contact-seller" onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle contact logic here if needed
-                            alert(`Contact ${property.sellerEmail}`);
-                          }}>Contact Seller</button>
-                        )}
-                        {isOwner && (
-                          <span style={{ fontSize: "12px", color: "gray" }}>You own this property</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-
-        {properties.length === 0 && (
+        {loading ? (
           <div className="empty-state">
-            <div className="empty-emoji">🏙️</div>
-            <h3>No Properties Found</h3>
-            <p>Try adjusting your search or check back later.</p>
+            <div className="empty-emoji">⏳</div>
+            <h3>Loading properties...</h3>
           </div>
+        ) : (
+          <>
+            <div className="properties-grid">
+              {properties
+                .filter(property => {
+                  if (activeTab === "Buy") return property.type === "Sell";
+                  if (activeTab === "Rent") return property.type === "Rent";
+                  if (activeTab === "Commercial") return property.category === "Commercial";
+                  return true;
+                })
+                .map(property => {
+                  const currentIndex = currentImageIndex[property.id] || 0;
+                  const hasImages = property.imageUrls && property.imageUrls.length > 0;
+                  const totalImages = hasImages ? property.imageUrls.length : 0;
+
+                  const isOwner = currentUser && (
+                    currentUser.email === property.sellerEmail ||
+                    currentUser.id === property.userId
+                  );
+
+
+                  const isSelected = selectedProperties.includes(property.id);
+
+                  return (
+                    <div key={property.id} className="property-card" onClick={() => navigate(`/property/${property.id}`)}>
+                      {/* Compare Checkbox */}
+                      <div className="compare-checkbox-wrapper" onClick={(e) => {
+                        e.stopPropagation();
+                        handlePropertySelect(property.id);
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => { }} // Handled by wrapper click
+                          className="compare-checkbox"
+                        />
+                        <span className="compare-label">Compare</span>
+                      </div>
+                      {/* IMAGE CAROUSEL */}
+                      <div className="card-image-wrapper">
+                        {hasImages ? (
+                          <>
+                            <img
+                              src={`http://localhost:8080/api/properties/images/${encodeURIComponent(property.imageUrls[currentIndex])}`}
+                              alt={property.title}
+                              className="card-image"
+                              onError={(e) => {
+                                e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
+                              }}
+                            />
+                            {totalImages > 1 && (
+                              <>
+                                <button className="card-nav-btn prev" onClick={(e) => handlePrevImage(e, property.id, totalImages)}>‹</button>
+                                <button className="card-nav-btn next" onClick={(e) => handleNextImage(e, property.id, totalImages)}>›</button>
+                              </>
+                            )}
+                            <div className="image-counter-badge">
+                              📷 {totalImages}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="no-image-placeholder">
+                            <span>🏠 No Photos</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* DETAILS */}
+                      <div className="card-details">
+                        <div className="card-header">
+                          <h3 className="card-price">₹ {property.price}</h3>
+                          <span className="card-title">{property.title}</span>
+                        </div>
+
+                        <div className="card-location">
+                          📍 {property.location}
+                        </div>
+
+                        <p className="card-description">
+                          {property.description?.length > 80
+                            ? property.description.substring(0, 80) + "..."
+                            : property.description}
+                        </p>
+
+                        <div className="card-footer">
+                          <span className="card-tag" style={{ backgroundColor: property.type === "Sell" ? "#007bff" : "#28a745", color: "white" }}>
+                            {property.type === "Sell" ? "For Sale" : "For Rent"}
+                          </span>
+                          <span className="card-tag" style={{ marginLeft: "5px", backgroundColor: "#6c757d", color: "white" }}>
+                            {property.category}
+                          </span>
+                          <div className="card-actions">
+                            {!isOwner && (
+                              <button className="btn-contact-seller" onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle contact logic here if needed
+                                alert(`Contact ${property.sellerEmail}`);
+                              }}>Contact Seller</button>
+                            )}
+                            {isOwner && (
+                              <span style={{ fontSize: "12px", color: "gray" }}>You own this property</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {properties.length === 0 && (
+              <div className="empty-state">
+                <div className="empty-emoji">🏙️</div>
+                <h3>No Properties Found</h3>
+                <p>Try adjusting your search or check back later.</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

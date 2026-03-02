@@ -20,6 +20,7 @@ public class PropertyResponse {
 	private String sellerEmail;
 	private String sellerUsername;
 	private List<String> imageUrls;
+	private List<String> videoUrls;
 
 	// Property Details
 	private Integer bedrooms;
@@ -122,6 +123,14 @@ public class PropertyResponse {
 
 	public void setImageUrls(List<String> imageUrls) {
 		this.imageUrls = imageUrls;
+	}
+
+	public List<String> getVideoUrls() {
+		return videoUrls;
+	}
+
+	public void setVideoUrls(List<String> videoUrls) {
+		this.videoUrls = videoUrls;
 	}
 
 	public Long getUserId() {

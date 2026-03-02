@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../config';
 import './EMICalculator.css';
 
-const EMICalculator = ({ propertyPrice }) => {
+const EMICalculator = ({ propertyPrice, propertyId, propertyCity }) => {
     // Parse price string to number/default logic
     const parsePrice = (priceStr) => {
         if (!priceStr) return 5000000; // Default 50L
@@ -21,6 +22,24 @@ const EMICalculator = ({ propertyPrice }) => {
     const [emi, setEmi] = useState(0);
     const [totalInterest, setTotalInterest] = useState(0);
     const [totalAmount, setTotalAmount] = useState(0);
+
+    // Fetch dynamic interest rate
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/loans/settings`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.homeLoanInterestRate) {
+                        setInterestRate(data.homeLoanInterestRate);
+                    }
+                }
+            } catch (err) {
+                console.error("Could not fetch loan settings", err);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     // Calculate EMI
     useEffect(() => {
@@ -139,7 +158,7 @@ const EMICalculator = ({ propertyPrice }) => {
 
                     <button
                         className="btn-apply-loan"
-                        onClick={() => navigate('/loan-application', { state: { loanAmount: loanAmount } })}
+                        onClick={() => navigate('/loan-application', { state: { loanAmount: loanAmount, propertyId, propertyCity } })}
                     >
                         Apply for Loan
                     </button>

@@ -59,7 +59,9 @@ const mapEditPropertyToFormData = (property) => {
     amenities: normalizeAmenities(property.amenities),
     contactNumber: property.contactNumber || "",
     existingImages: property.imageUrls || [],
-    imagesToDelete: []
+    imagesToDelete: [],
+    existingVideos: property.videoUrls || [],
+    videosToDelete: []
   };
 };
 
@@ -159,6 +161,18 @@ function SellProperty() {
       if (completedFormData.imagesToDelete && completedFormData.imagesToDelete.length > 0) {
         completedFormData.imagesToDelete.forEach((img) => {
           formDataToSubmit.append("imagesToDelete", img);
+        });
+      }
+
+      if (completedFormData.videos && completedFormData.videos.length > 0) {
+        for (let i = 0; i < completedFormData.videos.length; i++) {
+          formDataToSubmit.append("videos", completedFormData.videos[i]);
+        }
+      }
+
+      if (completedFormData.videosToDelete && completedFormData.videosToDelete.length > 0) {
+        completedFormData.videosToDelete.forEach((vid) => {
+          formDataToSubmit.append("videosToDelete", vid);
         });
       }
 

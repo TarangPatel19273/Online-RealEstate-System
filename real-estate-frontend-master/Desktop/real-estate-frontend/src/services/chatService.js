@@ -1,5 +1,6 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { API_BASE } from '../config';
 
 class ChatService {
   constructor() {
@@ -47,7 +48,7 @@ class ChatService {
     
     // Create SockJS socket with userId and token as query parameters
     // (SockJS doesn't support custom headers, so we pass them as query params)
-    const socket = new SockJS(`http://localhost:8080/ws-chat?userId=${userId}&token=${token}`);
+    const socket = new SockJS(`${API_BASE}/ws-chat?userId=${userId}&token=${token}`);
     
     this.client = new Client({
       webSocketFactory: () => socket,

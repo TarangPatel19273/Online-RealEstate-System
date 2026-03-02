@@ -23,4 +23,8 @@ public class LoanApplicationService {
     public LoanApplication getApplicationById(Long id) {
         return loanApplicationRepository.findById(id).orElse(null);
     }
+
+    public List<LoanApplication> getApplicationsByUserId(Long userId) {
+        return loanApplicationRepository.findByUserId(userId);
+    }
 }
