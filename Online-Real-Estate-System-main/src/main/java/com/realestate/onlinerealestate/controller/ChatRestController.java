@@ -1,7 +1,6 @@
 package com.realestate.onlinerealestate.controller;
 
 import java.util.List;
-import java.security.Principal;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,7 +27,7 @@ public class ChatRestController {
 
     @Autowired
     private ChatMessageService chatMessageService;
-    
+
     @Autowired
     private UserRepository userRepository;
 
@@ -53,17 +52,17 @@ public class ChatRestController {
             @PathVariable Long userId1,
             @PathVariable Long userId2,
             @PathVariable Long propertyId) {
-        
+
         // SECURITY: Verify current user is one of the participants
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
             System.err.println("❌ SECURITY: Unauthorized - User not authenticated");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
-        
+
         if (!currentUserId.equals(userId1) && !currentUserId.equals(userId2)) {
-            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId + 
-                             " attempted to access chat between " + userId1 + " and " + userId2);
+            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId +
+                    " attempted to access chat between " + userId1 + " and " + userId2);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to view this chat");
         }
 
@@ -81,10 +80,10 @@ public class ChatRestController {
             System.err.println("❌ SECURITY: Unauthorized - User not authenticated");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
-        
+
         if (!currentUserId.equals(userId)) {
-            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId + 
-                             " attempted to fetch unread messages for user " + userId);
+            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId +
+                    " attempted to fetch unread messages for user " + userId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only view your own unread messages");
         }
 
@@ -102,10 +101,10 @@ public class ChatRestController {
             System.err.println("❌ SECURITY: Unauthorized - User not authenticated");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
-        
+
         if (!currentUserId.equals(userId)) {
-            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId + 
-                             " attempted to fetch conversation list for user " + userId);
+            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId +
+                    " attempted to fetch conversation list for user " + userId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only view your own conversations");
         }
 
@@ -124,7 +123,8 @@ public class ChatRestController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
 
-        // Note: In a production system, you'd verify the message exists and current user is the receiver
+        // Note: In a production system, you'd verify the message exists and current
+        // user is the receiver
         // For now, we trust the service layer but log the action
         System.out.println("✅ SECURITY: Message read marked for messageId " + messageId + " by user " + currentUserId);
         chatMessageService.markAsRead(messageId);
@@ -140,28 +140,27 @@ public class ChatRestController {
             System.err.println("❌ SECURITY: Unauthorized - User not authenticated");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
-        
+
         // SECURITY: Verify the sender is the authenticated user
         if (!currentUserId.equals(message.getSenderId())) {
-            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId + 
-                             " attempted to send message as user " + message.getSenderId());
+            System.err.println("❌ SECURITY: Unauthorized - User " + currentUserId +
+                    " attempted to send message as user " + message.getSenderId());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only send messages as yourself");
         }
 
         // SECURITY: Verify user is authorized for this chat
-        if (!chatMessageService.isUserAuthorizedForChat(currentUserId, message.getSenderId(), 
-                                                        message.getReceiverId(), message.getPropertyId())) {
+        if (!chatMessageService.isUserAuthorizedForChat(currentUserId, message.getSenderId(),
+                message.getReceiverId(), message.getPropertyId())) {
             System.err.println("❌ SECURITY: Chat authorization failed for REST message endpoint");
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized for this chat");
         }
 
         System.out.println("✅ SECURITY: REST message send verified for user " + currentUserId);
         ChatMessageDTO savedMessage = chatMessageService.saveMessage(
-            message.getSenderId(),
-            message.getReceiverId(),
-            message.getPropertyId(),
-            message.getMessage()
-        );
+                message.getSenderId(),
+                message.getReceiverId(),
+                message.getPropertyId(),
+                message.getMessage());
         return ResponseEntity.ok(savedMessage);
     }
 }

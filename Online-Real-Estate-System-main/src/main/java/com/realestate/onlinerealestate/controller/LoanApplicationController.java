@@ -18,8 +18,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -110,8 +109,12 @@ public class LoanApplicationController {
             if (document != null && !document.isEmpty()) {
                 Path uploadPath = Paths.get("uploads", "documents").toAbsolutePath().normalize();
                 Files.createDirectories(uploadPath);
+                String originalFilename = document.getOriginalFilename();
+                if (originalFilename == null) {
+                    originalFilename = "document";
+                }
                 String fileName = System.currentTimeMillis() + "_"
-                        + document.getOriginalFilename().replaceAll("[^a-zA-Z0-9.-]", "_");
+                        + originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(document.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 

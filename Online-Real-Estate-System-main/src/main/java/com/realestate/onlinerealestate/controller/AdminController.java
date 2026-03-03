@@ -28,9 +28,6 @@ public class AdminController {
     @Autowired
     private LoanApplicationRepository loanApplicationRepository;
 
-    @Autowired
-    private ChatMessageRepository chatMessageRepository;
-
     // --- Analytics ---
     @GetMapping("/analytics")
     public ResponseEntity<Map<String, Object>> getAnalytics() {
