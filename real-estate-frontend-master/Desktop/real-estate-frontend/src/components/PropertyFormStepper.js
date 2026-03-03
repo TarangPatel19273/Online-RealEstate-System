@@ -119,10 +119,42 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
   ];
 
   const handleInputChange = (field, value) => {
-    setFormState(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // Add validation for file sizes
+    if (field === "images" && value && value.length > 0) {
+      const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+      const validFiles = Array.from(value).filter(file => {
+        if (file.size > MAX_IMAGE_SIZE) {
+          alert(`Image "${file.name}" exceeds the maximum size of 5MB.`);
+          return false;
+        }
+        return true;
+      });
+
+      setFormState(prev => ({
+        ...prev,
+        [field]: validFiles
+      }));
+    } else if (field === "videos" && value && value.length > 0) {
+      const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+      const validFiles = Array.from(value).filter(file => {
+        if (file.size > MAX_VIDEO_SIZE) {
+          alert(`Video "${file.name}" exceeds the maximum size of 50MB.`);
+          return false;
+        }
+        return true;
+      });
+
+      setFormState(prev => ({
+        ...prev,
+        [field]: validFiles
+      }));
+    } else {
+      setFormState(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+
     if (stepError) {
       setStepError("");
     }
@@ -435,7 +467,25 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                     }
 
                     try {
-                      const coords = await getCoordinates(fullAddress);
+                      let coords = await getCoordinates(fullAddress);
+
+                      // Fallback 1: City + State + Pincode
+                      if (!coords || !coords.lat || !coords.lon) {
+                        const fallback1 = `${formState.city}, ${formState.state} ${formState.pincode}`;
+                        coords = await getCoordinates(fallback1);
+                      }
+
+                      // Fallback 2: City + State
+                      if (!coords || !coords.lat || !coords.lon) {
+                        const fallback2 = `${formState.city}, ${formState.state}`;
+                        coords = await getCoordinates(fallback2);
+                      }
+
+                      // Fallback 3: State only
+                      if (!coords || !coords.lat || !coords.lon) {
+                        coords = await getCoordinates(formState.state);
+                      }
+
                       if (coords && coords.lat && coords.lon) {
                         setFormState(prev => ({
                           ...prev,
@@ -444,7 +494,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                         }));
                         setMapCenter([coords.lat, coords.lon]);
                       } else {
-                        alert("Could not find coordinates for this address.");
+                        alert("Could not find coordinates for this address. Please manually enter approximate coordinates or verify spelling.");
                       }
                     } catch (e) {
                       console.error(e);
@@ -790,7 +840,12 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                     type="file"
                     multiple
                     accept="image/*"
-                    onChange={(e) => handleInputChange("images", e.target.files)}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleInputChange("images", e.target.files);
+                      }
+                      e.target.value = null; // Reset input so same files can be selected again if needed
+                    }}
                     style={{ display: 'none' }}
                   />
                 </label>
@@ -811,7 +866,12 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                     type="file"
                     multiple
                     accept="video/*"
-                    onChange={(e) => handleInputChange("videos", e.target.files)}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleInputChange("videos", e.target.files);
+                      }
+                      e.target.value = null; // Reset input so same file can be selected again if needed
+                    }}
                     style={{ display: 'none' }}
                   />
                 </label>

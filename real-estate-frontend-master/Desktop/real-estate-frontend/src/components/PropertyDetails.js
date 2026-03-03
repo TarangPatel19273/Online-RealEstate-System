@@ -10,7 +10,7 @@ import EMICalculator from "./EMICalculator";
 import axios from "axios";
 import { API_BASE } from "../config";
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -35,6 +35,8 @@ const PropertyDetails = () => {
     const [mediaTab, setMediaTab] = useState("Images"); // "Images" or "Videos"
     const [isOwner, setIsOwner] = useState(false);
     const [showContact, setShowContact] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [mapViewType, setMapViewType] = useState("default");
     const [showChat, setShowChat] = useState(false);
     const [sellerId, setSellerId] = useState(null);
     const [activeTab, setActiveTab] = useState("Overview");
@@ -586,7 +588,7 @@ const PropertyDetails = () => {
                             {!isOwner && (
                                 <div style={{ display: "flex", gap: "10px" }}>
                                     <button
-                                        onClick={() => setShowContact(true)}
+                                        onClick={() => setShowContactModal(true)}
                                         style={{ padding: "12px 32px", background: "#0078db", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px", fontWeight: "600" }}
                                     >
                                         Contact Owner <span style={{ background: "rgba(255,255,255,0.3)", padding: "2px 8px", borderRadius: "4px", marginLeft: "8px" }}>FREE</span>
@@ -1051,36 +1053,7 @@ const PropertyDetails = () => {
                                     </div>
                                 ) : (
                                     <>
-                                        {showContact && (
-                                            <div style={{ padding: "20px", background: "#e9ecef", borderRadius: "8px", marginTop: "20px" }}>
-                                                <h3 style={{ fontSize: "18px", marginBottom: "15px", fontWeight: "700" }}>Seller Contact</h3>
-                                                <div style={{ marginBottom: "10px" }}>
-                                                    <strong>Name:</strong> {property.sellerUsername || "N/A"}
-                                                </div>
-                                                {property.contactNumber && (
-                                                    <div style={{ marginBottom: "10px" }}>
-                                                        <strong>Phone:</strong> {property.contactNumber}
-                                                    </div>
-                                                )}
-                                                <div style={{ marginBottom: "15px" }}>
-                                                    <strong>Email:</strong> {property.sellerEmail || "N/A"}
-                                                </div>
-                                                {property.sellerEmail && (
-                                                    <a
-                                                        href={`mailto:${property.sellerEmail}?subject=Inquiry about ${property.title}`}
-                                                        style={{ display: "inline-block", padding: "10px 20px", background: "#28a745", color: "white", textDecoration: "none", borderRadius: "6px", fontWeight: "600" }}
-                                                    >
-                                                        Send Email
-                                                    </a>
-                                                )}
-                                                <button
-                                                    onClick={() => setShowContact(false)}
-                                                    style={{ marginLeft: "10px", padding: "10px 20px", background: "#6c757d", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
-                                                >
-                                                    Close
-                                                </button>
-                                            </div>
-                                        )}
+                                        {/* Contact Owner handled by modal now, avoiding inline rendering */}
                                     </>
                                 )}
 
@@ -1152,7 +1125,7 @@ const PropertyDetails = () => {
                             <div>
                                 <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "15px", color: "#333" }}>Contact Owner</h3>
                                 <button
-                                    onClick={() => setShowContact(!showContact)}
+                                    onClick={() => setShowContactModal(true)}
                                     style={{
                                         padding: "12px 24px",
                                         background: "#0078db",
@@ -1166,13 +1139,8 @@ const PropertyDetails = () => {
                                         width: "100%"
                                     }}
                                 >
-                                    {showContact ? "Hide Contact Details" : "Show Contact Details"}
+                                    Show Contact Details
                                 </button>
-                                {showContact && (
-                                    <div style={{ padding: "20px", background: "#fffbf0", borderRadius: "8px", border: "1px solid #ffd99b" }}>
-                                        <p style={{ margin: "0 0 10px 0", color: "#333" }}>Best time to reach out:</p>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -1438,27 +1406,106 @@ const PropertyDetails = () => {
                         </div>
 
                         {displayCoordinates ? (
-                            <MapContainer
-                                center={[displayCoordinates.lat, displayCoordinates.lng]}
-                                zoom={15}
-                                style={{ width: "100%", height: "100%", borderRadius: "12px", zIndex: 1 }}
-                            >
-                                <TileLayer
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                />
-                                <Marker position={[displayCoordinates.lat, displayCoordinates.lng]}>
-                                    <Popup>Property Location</Popup>
-                                </Marker>
-                                {nearbyPlaces.map((place, index) => (
-                                    <Marker
-                                        key={index}
-                                        position={[place.lat, place.lng]}
+                            <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                                {/* Map View Toggles */}
+                                <div style={{
+                                    position: "absolute",
+                                    top: "15px",
+                                    right: "15px",
+                                    zIndex: 400,
+                                    display: "flex",
+                                    background: "white",
+                                    borderRadius: "8px",
+                                    boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+                                    overflow: "hidden"
+                                }}>
+                                    <button
+                                        onClick={() => setMapViewType("default")}
+                                        style={{
+                                            padding: "8px 16px",
+                                            border: "none",
+                                            background: mapViewType === "default" ? "#0078db" : "transparent",
+                                            color: mapViewType === "default" ? "white" : "#333",
+                                            fontWeight: "600",
+                                            fontSize: "14px",
+                                            cursor: "pointer",
+                                            transition: "background 0.2s"
+                                        }}
                                     >
-                                        <Popup>{place.name || place.type.charAt(0).toUpperCase() + place.type.slice(1)}</Popup>
+                                        Map View
+                                    </button>
+                                    <button
+                                        onClick={() => setMapViewType("satellite")}
+                                        style={{
+                                            padding: "8px 16px",
+                                            border: "none",
+                                            background: mapViewType === "satellite" ? "#0078db" : "transparent",
+                                            color: mapViewType === "satellite" ? "white" : "#333",
+                                            fontWeight: "600",
+                                            fontSize: "14px",
+                                            cursor: "pointer",
+                                            transition: "background 0.2s"
+                                        }}
+                                    >
+                                        Satellite
+                                    </button>
+                                </div>
+
+                                <MapContainer
+                                    center={[displayCoordinates.lat, displayCoordinates.lng]}
+                                    zoom={15}
+                                    style={{ width: "100%", height: "100%", borderRadius: "12px", zIndex: 1 }}
+                                >
+                                    {mapViewType === "default" ? (
+                                        <TileLayer
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        />
+                                    ) : (
+                                        <TileLayer
+                                            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                                            url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                                        />
+                                    )}
+                                    <Marker position={[displayCoordinates.lat, displayCoordinates.lng]}>
+                                        <Popup>Property Location</Popup>
                                     </Marker>
-                                ))}
-                            </MapContainer>
+                                    {nearbyPlaces.map((place, index) => (
+                                        <Marker
+                                            key={index}
+                                            position={[place.lat, place.lng]}
+                                        >
+                                            <Popup>{place.name || place.type.charAt(0).toUpperCase() + place.type.slice(1)}</Popup>
+                                        </Marker>
+                                    ))}
+                                </MapContainer>
+
+                                <button
+                                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${displayCoordinates.lat},${displayCoordinates.lng}`, '_blank')}
+                                    style={{
+                                        position: "absolute",
+                                        bottom: "20px",
+                                        left: "50%",
+                                        transform: "translateX(-50%)",
+                                        padding: "12px 24px",
+                                        background: "#e74c3c",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "24px",
+                                        fontSize: "16px",
+                                        fontWeight: "600",
+                                        cursor: "pointer",
+                                        boxShadow: "0 4px 12px rgba(231, 76, 60, 0.4)",
+                                        zIndex: 400, // Leaflet controls usually have z-index 1000, so 400 will place it above map but below modal/controls
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        transition: "all 0.3s ease"
+                                    }}
+                                >
+                                    🗺️ Get Directions
+                                </button>
+                            </div>
                         ) : (
                             <div style={{
                                 height: "100%",
