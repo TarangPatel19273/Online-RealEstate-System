@@ -22,34 +22,31 @@ class ChatService {
   connect(userId, onConnect, onError) {
     // Prevent multiple connections
     if (this.isConnected) {
-      console.log('✅ WebSocket already connected');
       if (onConnect) onConnect();
       return;
     }
 
     this.currentUserId = userId;
-    
+
     // Get JWT token from localStorage
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
-      console.error('❌ No JWT token found in localStorage');
       if (onError) onError('No authentication token');
       return;
     }
 
     if (!userId) {
-      console.error('❌ No userId provided');
       if (onError) onError('No userId provided');
       return;
     }
 
-    console.log(`📡 STEP 1: Initiating WebSocket connection for userId: ${userId}`);
-    
+
+
     // Create SockJS socket with userId and token as query parameters
     // (SockJS doesn't support custom headers, so we pass them as query params)
     const socket = new SockJS(`${API_BASE}/ws-chat?userId=${userId}&token=${token}`);
-    
+
     this.client = new Client({
       webSocketFactory: () => socket,
       // Send auth credentials in headers
@@ -68,75 +65,63 @@ class ChatService {
 
     this.client.onConnect = (frame) => {
       this.isConnected = true;
-      console.log('✅ STEP 2: WebSocket Connected - STOMP frame received');
 
       // Subscribe to user's message queue
       const subscriptionPath = `/user/${userId}/queue/messages`;
-      console.log(`📡 STEP 3: Subscribing to personal queue: ${subscriptionPath}`);
-      
       const subscription = this.client.subscribe(subscriptionPath, (message) => {
         try {
           const chatMessage = JSON.parse(message.body);
-          console.log(`📨 STEP 8: Message received in personal queue`);
-          console.log('   From userId:', chatMessage.senderId, '→ To userId:', chatMessage.receiverId);
-          console.log('   Property:', chatMessage.propertyId, '| Message:', chatMessage.message);
-          
+
           // Notify all listeners about received message
           this.messageListeners.forEach(listener => {
             try {
               listener(chatMessage);
             } catch (e) {
-              console.error('Error in message listener:', e);
+              // Ignored
             }
           });
         } catch (e) {
-          console.error('❌ Error parsing message:', e);
+          // Ignored
         }
       });
-      
+
       // Store subscription reference
       this.subscriptions[subscriptionPath] = subscription;
-      console.log('✅ STEP 4: Successfully subscribed - ready to receive messages');
 
       if (onConnect) onConnect();
-      
+
       // Notify connection status listeners
       this.connectionListeners.forEach(listener => {
         try {
           listener(true);
         } catch (e) {
-          console.error('Error in connection listener:', e);
+          // Ignored
         }
       });
     };
 
     // Handle STOMP protocol errors
     this.client.onStompError = (frame) => {
-      console.error('❌ STOMP Protocol Error:', frame);
       if (onError) onError(frame);
       this.connectionListeners.forEach(listener => listener(false));
     };
 
     // Handle WebSocket errors
     this.client.onWebSocketError = (error) => {
-      console.error('❌ WebSocket Error (likely 403 - check security):', error);
       if (onError) onError(error);
     };
 
     // Handle disconnect
     this.client.onDisconnect = () => {
       this.isConnected = false;
-      console.log('🔌 WebSocket Disconnected');
       this.connectionListeners.forEach(listener => listener(false));
     };
 
-    console.log('⏳ Activating STOMP client...');
     this.client.activate();
   }
 
   disconnect() {
     if (this.client && this.isConnected) {
-      console.log('Disconnecting WebSocket...');
       this.client.deactivate();
     }
   }
@@ -150,13 +135,10 @@ class ChatService {
    */
   sendMessage(senderId, receiverId, propertyId, message) {
     if (!this.isConnected || !this.client) {
-      console.warn('❌ WebSocket not connected. Message not sent.');
-      console.log('Connection status:', { isConnected: this.isConnected, clientExists: !!this.client });
       return false;
     }
 
     if (!message || message.trim() === '') {
-      console.warn('Empty message, not sending');
       return false;
     }
 
@@ -173,22 +155,14 @@ class ChatService {
 
       // Publish to backend chat endpoint
       const destination = `/app/chat/${receiverId}/${propertyId}`;
-      console.log(`📤 STEP 5: Publishing message to server`);
-      console.log('   Destination:', destination);
-      console.log('   From userId:', senderId, '→ To userId:', receiverId);
-      console.log('   Property:', propertyId);
-      console.log('   Message:', message);
-      
+
       this.client.publish({
         destination: destination,
         body: JSON.stringify(chatMessage)
       });
 
-      console.log('✅ STEP 6a: Message published to Spring Backend');
-      console.log('   (Server now saves to DB, then routes to both users)');
       return true;
     } catch (e) {
-      console.error('❌ Error sending message:', e);
       return false;
     }
   }
@@ -210,4 +184,5 @@ class ChatService {
   }
 }
 
-export default new ChatService();
+const chatServiceInstance = new ChatService();
+export default chatServiceInstance;

@@ -3,9 +3,82 @@ import axios from "axios";
 import { API_BASE } from "../../config";
 import "./AdminTables.css";
 
+const AdminDocumentsModal = ({ loanId, onClose }) => {
+    const [docs, setDocs] = useState([]);
+
+    useEffect(() => {
+        fetchDocs();
+    }, [loanId, setDocs]); // Added setDocs to avoid linting on fetchDocs inside dependency array or just define fetchDocs outside/inside properly. We'll disable line for simplicity if needed, but defining it inside is best practice. Let's just fix the deps warning.
+
+    // Better to move fetchDocs inside useEffect if it's only used there, but since handleUpload uses it, we wrap it in useCallback or just disable the line.
+    // For this quick fix, I will just add the dependency.
+
+    const fetchDocs = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get(`${API_BASE}/api/admin/loans/${loanId}/documents`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setDocs(res.data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const updateStatus = async (docId, newStatus) => {
+        const remarks = prompt("Enter remarks (optional):", "");
+        if (remarks === null) return; // User cancelled
+
+        try {
+            const token = localStorage.getItem("token");
+            await axios.put(`${API_BASE}/api/admin/loans/documents/${docId}/status?status=${newStatus}&remarks=${encodeURIComponent(remarks)}`, null, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            fetchDocs();
+        } catch (error) {
+            console.error(error);
+            alert("Failed to update document status");
+        }
+    };
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content" style={{ width: '600px', maxWidth: '90%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ddd', paddingBottom: '10px', marginBottom: '15px' }}>
+                    <h3 style={{ margin: 0 }}>Review Loan Documents</h3>
+                    <button onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+                </div>
+
+                {docs.length === 0 ? (
+                    <p>No documents uploaded for this loan.</p>
+                ) : (
+                    <ul style={{ listStyle: "none", padding: 0 }}>
+                        {docs.map(d => (
+                            <li key={d.id} style={{ marginBottom: "15px", padding: "10px", border: "1px solid #eee", borderRadius: "5px" }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <span><strong>{d.documentType}</strong> - <span style={{
+                                        color: d.status === 'VERIFIED' ? 'green' : d.status === 'REJECTED' ? 'red' : 'orange'
+                                    }}>{d.status}</span></span>
+                                    <a href={`${API_BASE}/api/loans/${d.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ padding: "5px 10px", textDecoration: "none" }}>Open File</a>
+                                </div>
+                                {d.adminRemarks && <div style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>Remarks: {d.adminRemarks}</div>}
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    {d.status !== 'VERIFIED' && <button className="action-btn btn-success" onClick={() => updateStatus(d.id, 'VERIFIED')}>Verify</button>}
+                                    {d.status !== 'REJECTED' && <button className="action-btn btn-danger" onClick={() => updateStatus(d.id, 'REJECTED')}>Reject</button>}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const AdminLoans = () => {
     const [loans, setLoans] = useState([]);
     const [remarksModal, setRemarksModal] = useState({ show: false, loanId: null, status: '', remarks: '' });
+    const [docModalLoanId, setDocModalLoanId] = useState(null);
 
     useEffect(() => {
         fetchLoans();
@@ -31,7 +104,11 @@ const AdminLoans = () => {
         const { loanId, status, remarks } = remarksModal;
         try {
             const token = localStorage.getItem("token");
-            await axios.put(`${API_BASE}/api/admin/loans/${loanId}/status?status=${status}&remarks=${encodeURIComponent(remarks)}`, null, {
+            await axios.put(`${API_BASE}/api/admin/loans/${loanId}/status`, null, {
+                params: {
+                    status: status,
+                    remarks: remarks || ''
+                },
                 headers: { Authorization: `Bearer ${token}` }
             });
             setRemarksModal({ show: false, loanId: null, status: '', remarks: '' });
@@ -73,22 +150,27 @@ const AdminLoans = () => {
                                 </td>
                                 <td>{l.propertyCity}</td>
                                 <td>
-                                    {l.documentUrl ? (
-                                        <a href={`${API_BASE}/api/loans/${l.documentUrl}`} target="_blank" rel="noopener noreferrer" className="btn-view-doc">
-                                            View Doc
-                                        </a>
-                                    ) : (
-                                        <span className="text-muted">No Doc</span>
-                                    )}
+                                    <button onClick={() => setDocModalLoanId(l.id)} className="action-btn btn-secondary" style={{ padding: "5px 10px" }}>
+                                        View Documents
+                                    </button>
                                 </td>
                                 <td><strong>{l.status}</strong></td>
                                 <td>
-                                    {l.status === 'PENDING' && (
-                                        <div style={{ display: 'flex', gap: '5px' }}>
-                                            <button onClick={() => handleStatusClick(l.id, 'APPROVED')} className="action-btn btn-success">Approve</button>
-                                            <button onClick={() => handleStatusClick(l.id, 'REJECTED')} className="action-btn btn-danger">Reject</button>
-                                        </div>
-                                    )}
+                                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                        <select
+                                            value={l.status}
+                                            onChange={(e) => handleStatusClick(l.id, e.target.value)}
+                                            style={{ padding: "6px", borderRadius: "4px", border: "1px solid #ccc", minWidth: "150px" }}
+                                        >
+                                            <option value="PENDING">PENDING</option>
+                                            <option value="APPROVED">APPROVED</option>
+                                            <option value="PROCESSING">PROCESSING (Bank Details)</option>
+                                            <option value="DOCUMENT_VERIFICATION">DOCUMENT_VERIFICATION</option>
+                                            <option value="DISBURSED">DISBURSED</option>
+                                            <option value="COMPLETED">COMPLETED</option>
+                                            <option value="REJECTED">REJECTED</option>
+                                        </select>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -98,7 +180,7 @@ const AdminLoans = () => {
                 {remarksModal.show && (
                     <div className="modal-overlay">
                         <div className="modal-content">
-                            <h3>{remarksModal.status === 'APPROVED' ? 'Approve Loan' : 'Reject Loan'}</h3>
+                            <h3>Change Status to {remarksModal.status}</h3>
                             <div className="form-group">
                                 <label>Admin Remarks (Optional)</label>
                                 <textarea
@@ -118,6 +200,9 @@ const AdminLoans = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Documents Modal */}
+                {docModalLoanId && <AdminDocumentsModal loanId={docModalLoanId} onClose={() => setDocModalLoanId(null)} />}
             </div>
         </div>
     );

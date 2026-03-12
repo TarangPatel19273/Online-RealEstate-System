@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getCoordinates } from "../utils/geocode";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, LayersControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { API_BASE } from "../config";
@@ -529,10 +529,20 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                       zoom={15}
                       style={{ height: "100%", width: "100%" }}
                     >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      />
+                      <LayersControl position="topright">
+                        <LayersControl.BaseLayer checked name="Map">
+                          <TileLayer
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          />
+                        </LayersControl.BaseLayer>
+                        <LayersControl.BaseLayer name="Satellite">
+                          <TileLayer
+                            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                            url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                          />
+                        </LayersControl.BaseLayer>
+                      </LayersControl>
                       <MapUpdater center={mapCenter} />
                       <Marker
                         position={[formState.latitude, formState.longitude]}

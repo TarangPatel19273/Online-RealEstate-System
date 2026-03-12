@@ -22,6 +22,8 @@ const EMICalculator = ({ propertyPrice, propertyId, propertyCity }) => {
     const [emi, setEmi] = useState(0);
     const [totalInterest, setTotalInterest] = useState(0);
     const [totalAmount, setTotalAmount] = useState(0);
+    const [schedule, setSchedule] = useState([]);
+    const [showSchedule, setShowSchedule] = useState(false);
 
     // Fetch dynamic interest rate
     useEffect(() => {
@@ -53,10 +55,28 @@ const EMICalculator = ({ propertyPrice, propertyId, propertyCity }) => {
             const totalPayment = calculatedEmi * months;
             setTotalAmount(Math.round(totalPayment));
             setTotalInterest(Math.round(totalPayment - principal));
+
+            let sched = [];
+            let bal = principal;
+            for (let i = 1; i <= months; i++) {
+                const interestForMonth = bal * ratePerMonth;
+                const principalForMonth = calculatedEmi - interestForMonth;
+                bal -= principalForMonth;
+                if (bal < 0) bal = 0;
+                sched.push({
+                    month: i,
+                    emi: Math.round(calculatedEmi),
+                    principal: Math.round(principalForMonth),
+                    interest: Math.round(interestForMonth),
+                    balance: Math.round(bal)
+                });
+            }
+            setSchedule(sched);
         } else {
             setEmi(0);
             setTotalAmount(0);
             setTotalInterest(0);
+            setSchedule([]);
         }
     }, [loanAmount, interestRate, tenure]);
 
@@ -156,12 +176,57 @@ const EMICalculator = ({ propertyPrice, propertyId, propertyCity }) => {
                         </div>
                     </div>
 
-                    <button
-                        className="btn-apply-loan"
-                        onClick={() => navigate('/loan-application', { state: { loanAmount: loanAmount, propertyId, propertyCity } })}
-                    >
-                        Apply for Loan
-                    </button>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        <button
+                            className="btn-apply-loan"
+                            style={{ flex: 1, backgroundColor: "#fff", color: "#0078db", border: "1px solid #0078db" }}
+                            onClick={() => setShowSchedule(true)}
+                        >
+                            View Schedule
+                        </button>
+                        <button
+                            className="btn-apply-loan"
+                            style={{ flex: 2 }}
+                            onClick={() => navigate('/loan-application', { state: { loanAmount: loanAmount, propertyId, propertyCity } })}
+                        >
+                            Apply for Loan
+                        </button>
+                    </div>
+
+                    {showSchedule && (
+                        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                            <div className="modal-content" style={{ background: "#fff", padding: "20px", borderRadius: "8px", width: "800px", maxWidth: "90%", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                                    <h3 style={{ margin: 0 }}>Repayment Schedule</h3>
+                                    <button onClick={() => setShowSchedule(false)} style={{ background: "transparent", border: "none", fontSize: "20px", cursor: "pointer" }}>&times;</button>
+                                </div>
+                                <div style={{ overflowY: "auto", flex: 1 }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "right" }}>
+                                        <thead>
+                                            <tr style={{ background: "#f0f0f0" }}>
+                                                <th style={{ padding: "10px", textAlign: "center", borderBottom: "2px solid #ddd" }}>Month</th>
+                                                <th style={{ padding: "10px", borderBottom: "2px solid #ddd" }}>Principal (₹)</th>
+                                                <th style={{ padding: "10px", borderBottom: "2px solid #ddd" }}>Interest (₹)</th>
+                                                <th style={{ padding: "10px", borderBottom: "2px solid #ddd" }}>Total EMI (₹)</th>
+                                                <th style={{ padding: "10px", borderBottom: "2px solid #ddd" }}>Balance (₹)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {schedule.map(row => (
+                                                <tr key={row.month} style={{ borderBottom: "1px solid #eee" }}>
+                                                    <td style={{ padding: "8px", textAlign: "center" }}>{row.month}</td>
+                                                    <td style={{ padding: "8px" }}>{formatCurrency(row.principal).replace('₹', '')}</td>
+                                                    <td style={{ padding: "8px" }}>{formatCurrency(row.interest).replace('₹', '')}</td>
+                                                    <td style={{ padding: "8px", fontWeight: "bold" }}>{formatCurrency(row.emi).replace('₹', '')}</td>
+                                                    <td style={{ padding: "8px" }}>{formatCurrency(row.balance).replace('₹', '')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

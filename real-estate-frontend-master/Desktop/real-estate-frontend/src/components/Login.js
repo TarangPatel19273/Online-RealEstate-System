@@ -9,7 +9,6 @@ function Login() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,11 +57,11 @@ function Login() {
 
     loadGoogleScript();
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, location]);
 
   const handleGoogleSignIn = async (response) => {
     try {
-      setGoogleLoading(true);
       const { credential } = response;
 
       if (credential) {
@@ -76,8 +75,6 @@ function Login() {
     } catch (err) {
       console.error("Google Sign-In failed:", err);
       setMessage(typeof err.response?.data === "string" ? err.response.data : "Google Sign-In failed. Please try again.");
-    } finally {
-      setGoogleLoading(false);
     }
   };
 

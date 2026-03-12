@@ -46,7 +46,7 @@ const Home = () => {
       try {
         setCurrentUser(JSON.parse(storedUser));
       } catch (e) {
-        console.error("Failed to parse user from local storage");
+        // Ignored
       }
     }
   }, []);
@@ -78,7 +78,7 @@ const Home = () => {
       // filters.type = "Sell"; // Optional: default to sell for commercial? or show all. Let's show all commercial.
     }
 
-    console.log("Fetching with filters:", filters);
+
 
     setLoading(true);
 
@@ -94,7 +94,6 @@ const Home = () => {
         setCurrentImageIndex(initialIndexes);
       })
       .catch(err => {
-        console.error("Error fetching properties:", err);
         setProperties([]);
       })
       .finally(() => {

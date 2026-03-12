@@ -68,6 +68,12 @@ public class LoanApplication {
     @Column(length = 20)
     private String bankIfscCode;
 
+    @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<LoanDocument> documents = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<EmiPayment> emiPayments = new java.util.ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -233,6 +239,22 @@ public class LoanApplication {
 
     public void setBankIfscCode(String bankIfscCode) {
         this.bankIfscCode = bankIfscCode;
+    }
+
+    public java.util.List<LoanDocument> getDocuments() {
+        return documents;
+    }
+
+    public void setDocuments(java.util.List<LoanDocument> documents) {
+        this.documents = documents;
+    }
+
+    public java.util.List<EmiPayment> getEmiPayments() {
+        return emiPayments;
+    }
+
+    public void setEmiPayments(java.util.List<EmiPayment> emiPayments) {
+        this.emiPayments = emiPayments;
     }
 
     @Override

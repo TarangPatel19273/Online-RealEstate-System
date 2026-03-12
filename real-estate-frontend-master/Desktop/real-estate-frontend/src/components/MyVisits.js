@@ -20,6 +20,7 @@ const MyVisits = () => {
 
     useEffect(() => {
         fetchMyVisits();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchMyVisits = async () => {

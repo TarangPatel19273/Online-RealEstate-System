@@ -27,12 +27,13 @@ function Chat({ propertyId, receiverId, receiverUsername, onClose }) {
       loadChatHistory();
       connectWebSocket();
     }
-    
+
     return () => {
       if (messageListenerRef.current) {
         chatService.removeMessageListener(messageListenerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, receiverId, propertyId]);
 
   // Scroll to bottom when messages change
@@ -51,14 +52,14 @@ function Chat({ propertyId, receiverId, receiverUsername, onClose }) {
       console.log(`   Receiver ID: ${receiverId}`);
       console.log(`   Property ID: ${propertyId}`);
       console.log(`   URL: /chat/history/${currentUser.id}/${receiverId}/${propertyId}`);
-      
+
       const response = await axiosConfig.get(
         `/chat/history/${currentUser.id}/${receiverId}/${propertyId}`
       );
-      
+
       const loadedMessages = response.data || [];
       console.log(`✅ STEP 1: Loaded ${loadedMessages.length} previous messages from database`);
-      
+
       if (loadedMessages.length === 0) {
         console.log("   ℹ️ No previous messages found. Starting fresh conversation.");
       } else {
@@ -66,7 +67,7 @@ function Chat({ propertyId, receiverId, receiverUsername, onClose }) {
           console.log(`   Message ${index + 1}: ${msg.senderUsername} → ${msg.receiverUsername}: "${msg.message}"`);
         });
       }
-      
+
       setMessages(loadedMessages);
       setLoading(false);
     } catch (error) {
@@ -93,25 +94,25 @@ function Chat({ propertyId, receiverId, receiverUsername, onClose }) {
     // Create unique listener for this conversation
     const messageListener = (incomingMessage) => {
       // Check if message belongs to this conversation
-      const isPartOfConversation = 
+      const isPartOfConversation =
         incomingMessage.propertyId === propertyId &&
         ((incomingMessage.senderId === currentUser.id && incomingMessage.receiverId === receiverId) ||
-         (incomingMessage.senderId === receiverId && incomingMessage.receiverId === currentUser.id));
+          (incomingMessage.senderId === receiverId && incomingMessage.receiverId === currentUser.id));
 
       if (isPartOfConversation) {
         console.log(`✅ STEP 8: Message delivered to Chat component`);
         console.log('   From:', incomingMessage.senderUsername, '→ To:', receiverUsername);
-        
+
         setMessages((prevMessages) => {
           // Create a unique key for this message (combination of sender, receiver, timestamp, and content)
           const messageKey = `${incomingMessage.senderId}-${incomingMessage.receiverId}-${incomingMessage.timestamp}-${incomingMessage.message}`;
-          
+
           // Check if message already exists to avoid duplicates
           const messageExists = prevMessages.some(msg => {
             const existingKey = `${msg.senderId}-${msg.receiverId}-${msg.timestamp}-${msg.message}`;
             return existingKey === messageKey;
           });
-          
+
           if (!messageExists) {
             console.log('   ✅ Added to message list and displayed');
             // Remove the optimistic message if this is the confirmed version
@@ -139,7 +140,7 @@ function Chat({ propertyId, receiverId, receiverUsername, onClose }) {
 
     console.log(`📤 STEP 5: User sends message from Chat form`);
     console.log(`   Message: "${inputMessage}"`);
-    
+
     // Send via WebSocket
     const sent = chatService.sendMessage(currentUser.id, receiverId, propertyId, inputMessage);
 
@@ -147,7 +148,7 @@ function Chat({ propertyId, receiverId, receiverUsername, onClose }) {
       // DON'T add optimistic message to state
       // Instead, wait for the server confirmation through WebSocket to avoid duplicates
       // The server sends the message back through the WebSocket listener
-      
+
       console.log(`✅ STEP 7: Message sent to server, waiting for confirmation`);
 
       // Clear input
@@ -180,9 +181,8 @@ function Chat({ propertyId, receiverId, receiverUsername, onClose }) {
           messages.map((msg, index) => (
             <div
               key={index}
-              className={`chat-message ${
-                msg.senderId === currentUser.id ? "sent" : "received"
-              }`}
+              className={`chat-message ${msg.senderId === currentUser.id ? "sent" : "received"
+                }`}
             >
               <div className="message-bubble">
                 <p className="message-text">{msg.message}</p>

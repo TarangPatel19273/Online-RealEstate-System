@@ -10,8 +10,12 @@ import java.util.List;
 
 import com.realestate.onlinerealestate.model.Property;
 import com.realestate.onlinerealestate.model.User;
+import com.realestate.onlinerealestate.model.LoanDocument;
+import com.realestate.onlinerealestate.model.EmiPayment;
+import com.realestate.onlinerealestate.repository.LoanDocumentRepository;
 import com.realestate.onlinerealestate.repository.PropertyRepository;
 import com.realestate.onlinerealestate.repository.UserRepository;
+import com.realestate.onlinerealestate.repository.EmiPaymentRepository;
 import com.realestate.onlinerealestate.security.JwtUtil;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -40,7 +44,16 @@ public class LoanApplicationController {
     private com.realestate.onlinerealestate.repository.LoanSettingsRepository loanSettingsRepository;
 
     @Autowired
+    private com.realestate.onlinerealestate.service.PdfGenerationService pdfGenerationService;
+
+    @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private LoanDocumentRepository loanDocumentRepository;
+
+    @Autowired
+    private EmiPaymentRepository emiPaymentRepository;
 
     @Autowired
     private PropertyRepository propertyRepository;
@@ -203,6 +216,8 @@ public class LoanApplicationController {
             application.setSelectedBank(bank);
             application.setBankAccountNumber(accountNo);
             application.setBankIfscCode(ifsc);
+            // Move application to processing stage automatically
+            application.setStatus("PROCESSING");
 
             loanApplicationService.submitApplication(application);
 
@@ -210,6 +225,100 @@ public class LoanApplicationController {
             response.put("message", "Bank details submitted successfully");
             return ResponseEntity.ok(response);
 
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/user/{id}/documents")
+    public ResponseEntity<?> uploadLoanDocument(
+            @PathVariable Long id,
+            @RequestParam("documentType") String documentType,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            LoanApplication application = loanApplicationService.getApplicationById(id);
+            if (application == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Application not found");
+            }
+
+            // Ensure the application belongs to the calling user
+            if (application.getUser() == null || !application.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized");
+            }
+
+            // Save file
+            if (file != null && !file.isEmpty()) {
+                Path uploadPath = Paths.get("uploads", "documents").toAbsolutePath().normalize();
+                Files.createDirectories(uploadPath);
+                String originalFilename = file.getOriginalFilename();
+                if (originalFilename == null) {
+                    originalFilename = "document";
+                }
+                String fileName = System.currentTimeMillis() + "_"
+                        + originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                LoanDocument doc = new LoanDocument();
+                doc.setLoanApplication(application);
+                doc.setDocumentType(documentType);
+                doc.setFileUrl("documents/" + fileName);
+                loanDocumentRepository.save(doc);
+
+                return ResponseEntity.ok(doc);
+            } else {
+                return ResponseEntity.badRequest().body("File is missing");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/user/{id}/documents")
+    public ResponseEntity<?> getLoanDocuments(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            LoanApplication application = loanApplicationService.getApplicationById(id);
+            if (application == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Application not found");
+            }
+
+            if (application.getUser() == null || !application.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized");
+            }
+
+            List<LoanDocument> documents = loanDocumentRepository.findByLoanApplicationId(id);
+            return ResponseEntity.ok(documents);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
@@ -261,5 +370,144 @@ public class LoanApplicationController {
     public ResponseEntity<List<LoanApplication>> getAllApplications() {
         List<LoanApplication> applications = loanApplicationService.getAllApplications();
         return ResponseEntity.ok(applications);
+    }
+
+    // ==========================
+    // EMI PAYMENTS
+    // ==========================
+    @GetMapping("/user/{id}/emi-schedule")
+    public ResponseEntity<?> getEmiSchedule(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            LoanApplication application = loanApplicationService.getApplicationById(id);
+            if (application == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Application not found");
+            }
+
+            if (application.getUser() == null || !application.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized");
+            }
+
+            List<EmiPayment> schedule = emiPaymentRepository.findByLoanApplicationIdOrderByMonthNumberAsc(id);
+            return ResponseEntity.ok(schedule);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/user/{loanId}/pay-emi/{emiId}")
+    public ResponseEntity<?> simulateEmiPayment(
+            @PathVariable Long loanId,
+            @PathVariable Long emiId,
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            LoanApplication application = loanApplicationService.getApplicationById(loanId);
+            if (application == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Application not found");
+            }
+
+            if (application.getUser() == null || !application.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized");
+            }
+
+            EmiPayment emi = emiPaymentRepository.findById(emiId).orElse(null);
+            if (emi == null || !emi.getLoanApplication().getId().equals(loanId)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("EMI not found");
+            }
+
+            if ("PAID".equals(emi.getStatus())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("EMI is already paid");
+            }
+
+            emi.setStatus("PAID");
+            emi.setPaidAt(java.time.LocalDateTime.now());
+            emiPaymentRepository.save(emi);
+
+            // Check if all EMIs are paid, and update main loan status if so
+            List<EmiPayment> allEmis = emiPaymentRepository.findByLoanApplicationIdOrderByMonthNumberAsc(loanId);
+            boolean allPaid = allEmis.stream().allMatch(e -> "PAID".equals(e.getStatus()));
+            if (allPaid) {
+                application.setStatus("COMPLETED");
+                loanApplicationService.submitApplication(application);
+            }
+
+            return ResponseEntity.ok(emi);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/user/{id}/agreement")
+    public ResponseEntity<byte[]> generateAgreement(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            LoanApplication application = loanApplicationService.getApplicationById(id);
+            if (application == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            if (application.getUser() == null || !application.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            // Must be disbursed or completed to view agreement
+            if (!"DISBURSED".equals(application.getStatus()) && !"COMPLETED".equals(application.getStatus())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
+            byte[] pdfBytes = pdfGenerationService.generateLoanAgreementPdf(application);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("filename", "LoanAgreement_" + application.getId() + ".pdf");
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

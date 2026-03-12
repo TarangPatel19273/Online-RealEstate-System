@@ -23,7 +23,7 @@ function Navbar() {
       try {
         setUser(JSON.parse(storedUser));
       } catch (e) {
-        console.error("Error parsing user data", e);
+        // Ignored
       }
     }
   }, []);
@@ -54,10 +54,8 @@ function Navbar() {
         chatService.connect(
           user.id,
           () => {
-            console.log("Navbar WebSocket connected");
           },
           (error) => {
-            console.error("Navbar WebSocket error:", error);
           }
         );
       }
@@ -76,6 +74,7 @@ function Navbar() {
         chatService.removeMessageListener(messageListener);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAuthenticated]);
 
   const loadUnreadCount = async () => {
@@ -85,7 +84,6 @@ function Navbar() {
       const count = response.data ? response.data.length : 0;
       setUnreadCount(count);
     } catch (error) {
-      console.error("Error loading unread count:", error);
       setUnreadCount(0);
     }
   };
@@ -124,7 +122,6 @@ function Navbar() {
       setConversations(conversationList);
       setLoadingConversations(false);
     } catch (error) {
-      console.error("Error loading conversations:", error);
       setLoadingConversations(false);
     }
   };

@@ -33,10 +33,9 @@ const PropertyDetails = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
     const [mediaTab, setMediaTab] = useState("Images"); // "Images" or "Videos"
-    const [isOwner, setIsOwner] = useState(false);
-    const [showContact, setShowContact] = useState(false);
+    // eslint-disable-next-line no-unused-vars
     const [showContactModal, setShowContactModal] = useState(false);
-    const [mapViewType, setMapViewType] = useState("default");
+    const [isOwner, setIsOwner] = useState(false);
     const [showChat, setShowChat] = useState(false);
     const [sellerId, setSellerId] = useState(null);
     const [activeTab, setActiveTab] = useState("Overview");
@@ -1006,7 +1005,7 @@ const PropertyDetails = () => {
                                 )}
 
                                 {/* EMI Calculator - Only for Buying */}
-                                {property.type !== "Rent" && (
+                                {property.type !== "Rent" && !isOwner && (
                                     <div style={{ marginBottom: "25px" }}>
                                         <EMICalculator propertyPrice={property.price} propertyId={property.id} propertyCity={property.city} />
                                     </div>
@@ -1407,66 +1406,25 @@ const PropertyDetails = () => {
 
                         {displayCoordinates ? (
                             <div style={{ position: "relative", width: "100%", height: "100%" }}>
-                                {/* Map View Toggles */}
-                                <div style={{
-                                    position: "absolute",
-                                    top: "15px",
-                                    right: "15px",
-                                    zIndex: 400,
-                                    display: "flex",
-                                    background: "white",
-                                    borderRadius: "8px",
-                                    boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-                                    overflow: "hidden"
-                                }}>
-                                    <button
-                                        onClick={() => setMapViewType("default")}
-                                        style={{
-                                            padding: "8px 16px",
-                                            border: "none",
-                                            background: mapViewType === "default" ? "#0078db" : "transparent",
-                                            color: mapViewType === "default" ? "white" : "#333",
-                                            fontWeight: "600",
-                                            fontSize: "14px",
-                                            cursor: "pointer",
-                                            transition: "background 0.2s"
-                                        }}
-                                    >
-                                        Map View
-                                    </button>
-                                    <button
-                                        onClick={() => setMapViewType("satellite")}
-                                        style={{
-                                            padding: "8px 16px",
-                                            border: "none",
-                                            background: mapViewType === "satellite" ? "#0078db" : "transparent",
-                                            color: mapViewType === "satellite" ? "white" : "#333",
-                                            fontWeight: "600",
-                                            fontSize: "14px",
-                                            cursor: "pointer",
-                                            transition: "background 0.2s"
-                                        }}
-                                    >
-                                        Satellite
-                                    </button>
-                                </div>
-
                                 <MapContainer
                                     center={[displayCoordinates.lat, displayCoordinates.lng]}
                                     zoom={15}
                                     style={{ width: "100%", height: "100%", borderRadius: "12px", zIndex: 1 }}
                                 >
-                                    {mapViewType === "default" ? (
-                                        <TileLayer
-                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        />
-                                    ) : (
-                                        <TileLayer
-                                            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                                            url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                                        />
-                                    )}
+                                    <LayersControl position="topleft">
+                                        <LayersControl.BaseLayer checked name="Map">
+                                            <TileLayer
+                                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            />
+                                        </LayersControl.BaseLayer>
+                                        <LayersControl.BaseLayer name="Satellite">
+                                            <TileLayer
+                                                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                                                url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                                            />
+                                        </LayersControl.BaseLayer>
+                                    </LayersControl>
                                     <Marker position={[displayCoordinates.lat, displayCoordinates.lng]}>
                                         <Popup>Property Location</Popup>
                                     </Marker>

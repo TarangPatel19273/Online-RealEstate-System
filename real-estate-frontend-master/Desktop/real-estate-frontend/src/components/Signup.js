@@ -10,9 +10,7 @@ function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
@@ -54,11 +52,11 @@ function Signup() {
     };
 
     loadGoogleScript();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const handleGoogleSignUp = async (response) => {
     try {
-      setGoogleLoading(true);
       const { credential } = response;
 
       if (credential) {
@@ -78,8 +76,6 @@ function Signup() {
       } else {
         setMessage("Google Sign-Up failed. Please try again.");
       }
-    } finally {
-      setGoogleLoading(false);
     }
   };
 

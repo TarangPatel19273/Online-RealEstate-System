@@ -58,6 +58,9 @@ public class SecurityConfig {
                         // ✅ STOCK PRICE FETCHING
                         .requestMatchers("/api/stocks/**").permitAll()
 
+                        // ✅ SPRING ERROR DISPATCHER
+                        .requestMatchers("/error").permitAll()
+
                         // ✅ OPTIONS (CORS preflight)
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
 

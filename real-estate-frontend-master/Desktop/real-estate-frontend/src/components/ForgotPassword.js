@@ -7,7 +7,6 @@ function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
 
   const handleSendOtp = async () => {
@@ -30,7 +29,6 @@ function ForgotPassword() {
       // Call the forgot password API
       await authService.forgotPassword(email);
 
-      setIsSubmitted(true);
       setMessage("OTP sent successfully! Please check your email.");
 
       // Navigate to verify OTP page for password reset
