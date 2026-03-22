@@ -27,7 +27,6 @@ const AdminLayout = () => {
                     <Link to="/admin/users" className={isActive("/admin/users")}>Users</Link>
                     <Link to="/admin/visits" className={isActive("/admin/visits")}>Visits</Link>
                     <Link to="/admin/loans" className={isActive("/admin/loans")}>Loans</Link>
-                    <Link to="/" className="back-link">Back to Main Site</Link>
                 </nav>
                 <div className="sidebar-footer">
                     <button onClick={handleLogout} className="logout-btn">Logout</button>

@@ -19,15 +19,26 @@ function Signup() {
     if (token) { navigate("/"); }
 
     // Initialize Google Sign-In when SDK is loaded
+    let initGoogle;
     const renderGoogleButton = () => {
-      const initGoogle = setInterval(() => {
+      initGoogle = setInterval(() => {
         const buttonEle = document.getElementById('google-signup-button');
         if (window.google && window.google.accounts && buttonEle) {
           clearInterval(initGoogle);
-          window.google.accounts.id.initialize({
-            client_id: "167248250288-n6af1ihtmr6hvcfc1npjdq1d7h0a64u3.apps.googleusercontent.com",
-            callback: handleGoogleSignUp,
-          });
+          
+          if (!window.googleGsiInitialized) {
+            window.google.accounts.id.initialize({
+              client_id: "167248250288-n6af1ihtmr6hvcfc1npjdq1d7h0a64u3.apps.googleusercontent.com",
+              callback: (response) => {
+                if (window.handleGoogleAuthCallback) {
+                  window.handleGoogleAuthCallback(response);
+                }
+              },
+            });
+            window.googleGsiInitialized = true;
+          }
+          window.handleGoogleAuthCallback = handleGoogleSignUp;
+
           window.google.accounts.id.renderButton(
             buttonEle,
             { theme: 'outline', size: 'large', width: '300px' }
@@ -52,6 +63,10 @@ function Signup() {
     };
 
     loadGoogleScript();
+
+    return () => {
+      if (initGoogle) clearInterval(initGoogle);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 

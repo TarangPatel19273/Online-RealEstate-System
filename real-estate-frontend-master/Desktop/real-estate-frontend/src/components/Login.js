@@ -9,7 +9,6 @@ function Login() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,15 +22,26 @@ function Login() {
     }
 
     // Initialize Google Sign-In when SDK is loaded
+    let initGoogle;
     const renderGoogleButton = () => {
-      const initGoogle = setInterval(() => {
+      initGoogle = setInterval(() => {
         const buttonEle = document.getElementById('google-login-button');
         if (window.google && window.google.accounts && buttonEle) {
           clearInterval(initGoogle);
-          window.google.accounts.id.initialize({
-            client_id: "167248250288-n6af1ihtmr6hvcfc1npjdq1d7h0a64u3.apps.googleusercontent.com",
-            callback: handleGoogleSignIn,
-          });
+          
+          if (!window.googleGsiInitialized) {
+            window.google.accounts.id.initialize({
+              client_id: "167248250288-n6af1ihtmr6hvcfc1npjdq1d7h0a64u3.apps.googleusercontent.com",
+              callback: (response) => {
+                if (window.handleGoogleAuthCallback) {
+                  window.handleGoogleAuthCallback(response);
+                }
+              },
+            });
+            window.googleGsiInitialized = true;
+          }
+          window.handleGoogleAuthCallback = handleGoogleSignIn;
+
           window.google.accounts.id.renderButton(
             buttonEle,
             { theme: 'outline', size: 'large', width: '300px' }
@@ -57,6 +67,9 @@ function Login() {
 
     loadGoogleScript();
 
+    return () => {
+      if (initGoogle) clearInterval(initGoogle);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, location]);
 
@@ -91,7 +104,7 @@ function Login() {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      if (res.data.user.role === 'ADMIN' || isAdminLogin) {
+      if (res.data.user.role === 'ADMIN') {
         navigate("/admin");
       } else {
         navigate("/");
@@ -198,10 +211,6 @@ function Login() {
               <label className="remember-me">
                 <input type="checkbox" />
                 <span>Remember me</span>
-              </label>
-              <label className="remember-me">
-                <input type="checkbox" checked={isAdminLogin} onChange={(e) => setIsAdminLogin(e.target.checked)} />
-                <span>Login as Admin</span>
               </label>
             </div>
 

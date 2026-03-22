@@ -26,6 +26,15 @@ class ChatService {
       return;
     }
 
+    // If client is already initializing, don't create another one
+    if (this.client && this.client.active) {
+      // Just wait for it to connect
+      this.onConnectionStatusChanged((status) => {
+        if (status && onConnect) onConnect();
+      });
+      return;
+    }
+
     this.currentUserId = userId;
 
     // Get JWT token from localStorage
@@ -55,9 +64,7 @@ class ChatService {
         'userId': userId.toString(),
         'X-User-Id': userId.toString()
       },
-      debug: (str) => {
-        // Enable for detailed STOMP frames: console.log('STOMP:', str);
-      },
+
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000

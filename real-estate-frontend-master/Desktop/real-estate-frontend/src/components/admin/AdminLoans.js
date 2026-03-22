@@ -3,12 +3,12 @@ import axios from "axios";
 import { API_BASE } from "../../config";
 import "./AdminTables.css";
 
-const AdminDocumentsModal = ({ loanId, onClose }) => {
+const AdminDocumentsModal = ({ loan, onClose }) => {
     const [docs, setDocs] = useState([]);
 
     useEffect(() => {
-        fetchDocs();
-    }, [loanId, setDocs]); // Added setDocs to avoid linting on fetchDocs inside dependency array or just define fetchDocs outside/inside properly. We'll disable line for simplicity if needed, but defining it inside is best practice. Let's just fix the deps warning.
+        if (loan && loan.id) fetchDocs();
+    }, [loan]); // Added loan to avoid linting on fetchDocs inside dependency array or just define fetchDocs outside/inside properly. We'll disable line for simplicity if needed, but defining it inside is best practice. Let's just fix the deps warning.
 
     // Better to move fetchDocs inside useEffect if it's only used there, but since handleUpload uses it, we wrap it in useCallback or just disable the line.
     // For this quick fix, I will just add the dependency.
@@ -16,7 +16,7 @@ const AdminDocumentsModal = ({ loanId, onClose }) => {
     const fetchDocs = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get(`${API_BASE}/api/admin/loans/${loanId}/documents`, {
+            const res = await axios.get(`${API_BASE}/api/admin/loans/${loan.id}/documents`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setDocs(res.data);
@@ -49,10 +49,18 @@ const AdminDocumentsModal = ({ loanId, onClose }) => {
                     <button onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
                 </div>
 
-                {docs.length === 0 ? (
+                {docs.length === 0 && !loan.documentUrl ? (
                     <p>No documents uploaded for this loan.</p>
                 ) : (
                     <ul style={{ listStyle: "none", padding: 0 }}>
+                        {loan.documentUrl && (
+                            <li style={{ marginBottom: "15px", padding: "10px", border: "1px solid #eee", borderRadius: "5px" }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <span><strong>Primary Document (Application)</strong></span>
+                                    <a href={`${API_BASE}/api/loans/${loan.documentUrl}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ padding: "5px 10px", textDecoration: "none" }}>Open File</a>
+                                </div>
+                            </li>
+                        )}
                         {docs.map(d => (
                             <li key={d.id} style={{ marginBottom: "15px", padding: "10px", border: "1px solid #eee", borderRadius: "5px" }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -202,7 +210,7 @@ const AdminLoans = () => {
                 )}
 
                 {/* Documents Modal */}
-                {docModalLoanId && <AdminDocumentsModal loanId={docModalLoanId} onClose={() => setDocModalLoanId(null)} />}
+                {docModalLoanId && <AdminDocumentsModal loan={loans.find(l => l.id === docModalLoanId)} onClose={() => setDocModalLoanId(null)} />}
             </div>
         </div>
     );

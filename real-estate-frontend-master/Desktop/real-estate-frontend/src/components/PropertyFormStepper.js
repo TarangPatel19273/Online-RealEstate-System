@@ -25,6 +25,7 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
   // eslint-disable-next-line no-unused-vars
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mapCenter, setMapCenter] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   // Fix default icon issue for react-leaflet
   useEffect(() => {
@@ -466,24 +467,34 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                       return;
                     }
 
+                    setIsLocating(true);
                     try {
                       let coords = await getCoordinates(fullAddress);
 
                       // Fallback 1: City + State + Pincode
                       if (!coords || !coords.lat || !coords.lon) {
+                        await new Promise(res => setTimeout(res, 1200)); // Respect Nominatim 1 request/sec limit
                         const fallback1 = `${formState.city}, ${formState.state} ${formState.pincode}`;
                         coords = await getCoordinates(fallback1);
                       }
 
                       // Fallback 2: City + State
                       if (!coords || !coords.lat || !coords.lon) {
+                        await new Promise(res => setTimeout(res, 1200));
                         const fallback2 = `${formState.city}, ${formState.state}`;
                         coords = await getCoordinates(fallback2);
                       }
 
                       // Fallback 3: State only
                       if (!coords || !coords.lat || !coords.lon) {
+                        await new Promise(res => setTimeout(res, 1200));
                         coords = await getCoordinates(formState.state);
+                      }
+
+                      // Fallback 4: Dharmsinh Desai University, Nadiad
+                      if (!coords || !coords.lat || !coords.lon) {
+                        await new Promise(res => setTimeout(res, 1200));
+                        coords = await getCoordinates("Dharmsinh Desai University, Nadiad, Gujarat, India");
                       }
 
                       if (coords && coords.lat && coords.lon) {
@@ -494,11 +505,13 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                         }));
                         setMapCenter([coords.lat, coords.lon]);
                       } else {
-                        alert("Could not find coordinates for this address. Please manually enter approximate coordinates or verify spelling.");
+                        alert("Could not find coordinates for this address on the map. Please quickly try just the city and state.");
                       }
                     } catch (e) {
                       console.error(e);
                       alert("Error geocoding address.");
+                    } finally {
+                      setIsLocating(false);
                     }
                   }}
                   style={{
@@ -511,8 +524,9 @@ const PropertyFormStepper = ({ formData, onComplete, onBack, editMode = false })
                     fontSize: "14px",
                     fontWeight: "600"
                   }}
+                  disabled={isLocating}
                 >
-                  Find on Map
+                  {isLocating ? "Locating..." : "Find on Map"}
                 </button>
               </div>
 

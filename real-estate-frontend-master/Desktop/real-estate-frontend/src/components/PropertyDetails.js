@@ -30,6 +30,12 @@ const PropertyDetails = () => {
     const navigate = useNavigate();
     const [property, setProperty] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [toastMessage, setToastMessage] = useState({ text: "", type: "" });
+
+    const showToast = (text, type = "info") => {
+        setToastMessage({ text, type });
+        setTimeout(() => setToastMessage({ text: "", type: "" }), 3000);
+    };
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
     const [mediaTab, setMediaTab] = useState("Images"); // "Images" or "Videos"
@@ -52,7 +58,8 @@ const PropertyDetails = () => {
 
     // Visit State
     const [showVisitModal, setShowVisitModal] = useState(false);
-    const [visitDate, setVisitDate] = useState("");
+    const [visitDateOnly, setVisitDateOnly] = useState("");
+    const [visitTimeOnly, setVisitTimeOnly] = useState("");
     const [visitContact, setVisitContact] = useState("");
     const [visitMessage, setVisitMessage] = useState("");
     const [visiting, setVisiting] = useState(false);
@@ -61,18 +68,20 @@ const PropertyDetails = () => {
         const token = localStorage.getItem("token");
         const storedUser = localStorage.getItem("user");
         if (!token || !storedUser) {
-            alert("Please login to book a visit");
+            showToast("Please login to book a visit", "error");
             navigate("/login");
             return;
         }
 
-        if (!visitDate) {
-            alert("Please select a date and time");
+        if (!visitDateOnly || !visitTimeOnly) {
+            showToast("Please select both a date and a time", "error");
             return;
         }
 
+        const visitDate = `${visitDateOnly}T${visitTimeOnly}`;
+
         if (!visitContact || visitContact.trim() === "") {
-            alert("Please provide a contact number");
+            showToast("Please provide a contact number", "error");
             return;
         }
 
@@ -86,14 +95,15 @@ const PropertyDetails = () => {
                 contactNumber: visitContact,
                 message: visitMessage
             });
-            alert("Visit requested successfully! You can view the status in My Visits.");
+            showToast("Visit requested successfully! You can view the status in My Visits.", "success");
             setShowVisitModal(false);
-            setVisitDate("");
+            setVisitDateOnly("");
+            setVisitTimeOnly("");
             setVisitContact("");
             setVisitMessage("");
         } catch (err) {
             console.error("Error booking visit", err);
-            alert("Failed to book visit. Please try again.");
+            showToast("Failed to book visit. Please try again.", "error");
         } finally {
             setVisiting(false);
         }
@@ -178,7 +188,7 @@ const PropertyDetails = () => {
         }
 
         if (!success) {
-            alert(`Could not fetch data for ${type}. The map servers might be busy. Please try again later.`);
+            showToast(`Could not fetch data for ${type}. The map servers might be busy. Please try again later.`, "error");
             setActivePlaceType(null);
         }
     };
@@ -196,7 +206,7 @@ const PropertyDetails = () => {
             setUploadingMedia(true);
             const token = localStorage.getItem("token");
             if (!token) {
-                alert("Please login to upload media");
+                showToast("Please login to upload media", "error");
                 return;
             }
 
@@ -205,10 +215,10 @@ const PropertyDetails = () => {
             // Re-fetch property to get updated media
             const response = await propertyService.getPropertyById(id);
             setProperty(response.data);
-            alert(`${type === 'image' ? 'Photos' : 'Videos'} uploaded successfully!`);
+            showToast(`${type === 'image' ? 'Photos' : 'Videos'} uploaded successfully!`, "success");
         } catch (err) {
             console.error(`Error uploading ${type}:`, err);
-            alert(`Failed to upload ${type}. Please try again.`);
+            showToast(`Failed to upload ${type}. Please try again.`, "error");
         } finally {
             setUploadingMedia(false);
             // Clear the file input
@@ -218,9 +228,6 @@ const PropertyDetails = () => {
 
     useEffect(() => {
         if (!property) return;
-
-        // Default fallback location (India Center)
-        const DEFAULT_FALLBACK = { lat: 20.5937, lng: 78.9629 };
 
         if (property.latitude && property.longitude) {
             setDisplayCoordinates({
@@ -247,6 +254,21 @@ const PropertyDetails = () => {
                     });
             };
 
+            const fallbackToDDU = () => {
+                fetchCoordinates("Dharmsinh Desai University, Nadiad, Gujarat, India").then(dduData => {
+                    if (dduData && dduData.length > 0) {
+                        setDisplayCoordinates({ lat: parseFloat(dduData[0].lat), lng: parseFloat(dduData[0].lon) });
+                        setGeocodingError(false);
+                    } else {
+                        setDisplayCoordinates(null);
+                        setGeocodingError(true);
+                    }
+                }).catch(() => {
+                    setDisplayCoordinates(null);
+                    setGeocodingError(true);
+                });
+            };
+
             // Strategy: Try specific -> General -> Fallback
             // 1. Full address
             const fullQuery = [property.address, property.location, property.city, property.state].filter(Boolean).join(", ");
@@ -262,10 +284,8 @@ const PropertyDetails = () => {
                     // 2. Fallback: Location + City + State
                     const fallbackQuery = [property.location, property.city, property.state].filter(Boolean).join(", ");
                     if (fallbackQuery === fullQuery || !fallbackQuery) {
-                        // Use default location instead of showing error
-                        console.warn("All geocoding attempts failed. Using default fallback location.");
-                        setDisplayCoordinates(DEFAULT_FALLBACK);
-                        setGeocodingError(false);
+                        console.warn("Geocoding failed, trying DDU fallback.");
+                        fallbackToDDU();
                         return;
                     }
 
@@ -280,10 +300,8 @@ const PropertyDetails = () => {
                             // 3. Fallback: City + State
                             const cityQuery = [property.city, property.state].filter(Boolean).join(", ");
                             if (cityQuery === fallbackQuery || !cityQuery) {
-                                // Use default location instead of showing error
-                                console.warn("All geocoding attempts failed. Using default fallback location.");
-                                setDisplayCoordinates(DEFAULT_FALLBACK);
-                                setGeocodingError(false);
+                                console.warn("Geocoding failed, trying DDU fallback.");
+                                fallbackToDDU();
                                 return;
                             }
 
@@ -295,10 +313,9 @@ const PropertyDetails = () => {
                                     });
                                     setGeocodingError(false);
                                 } else {
-                                    // Final fallback: Use default location
-                                    console.warn("Geocoding failed. Using default fallback location.");
-                                    setDisplayCoordinates(DEFAULT_FALLBACK);
-                                    setGeocodingError(false);
+                                    // Final fallback: Set error instead of showing wrong location
+                                    console.warn("Geocoding failed completely, trying DDU fallback.");
+                                    fallbackToDDU();
                                 }
                             });
                         }
@@ -307,16 +324,28 @@ const PropertyDetails = () => {
             })
                 .catch(err => {
                     console.error("Geocoding error:", err);
-                    // Use default fallback location instead of showing error
-                    console.warn("Using default fallback location due to geocoding error.");
-                    setDisplayCoordinates(DEFAULT_FALLBACK);
-                    setGeocodingError(false);
+                    fallbackToDDU();
                 });
         } else {
-            // No address data available, use default location
-            console.warn("No address data available. Using default fallback location.");
-            setDisplayCoordinates(DEFAULT_FALLBACK);
-            setGeocodingError(false);
+            // No address data available, set error
+            console.warn("No address data available, trying DDU fallback.");
+            const fallbackToDDU = () => {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent("Dharmsinh Desai University, Nadiad, Gujarat, India")}&limit=1`, {
+                    headers: { 'User-Agent': 'RealEstateApp/1.0' }
+                }).then(res => res.json()).then(dduData => {
+                    if (dduData && dduData.length > 0) {
+                        setDisplayCoordinates({ lat: parseFloat(dduData[0].lat), lng: parseFloat(dduData[0].lon) });
+                        setGeocodingError(false);
+                    } else {
+                        setDisplayCoordinates(null);
+                        setGeocodingError(true);
+                    }
+                }).catch(() => {
+                    setDisplayCoordinates(null);
+                    setGeocodingError(true);
+                });
+            };
+            fallbackToDDU();
         }
     }, [property]);
 
@@ -476,7 +505,7 @@ const PropertyDetails = () => {
     const handleWishlistToggle = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
-            alert("Please login to add items to wishlist");
+            showToast("Please login to add items to wishlist", "error");
             return;
         }
 
@@ -492,9 +521,9 @@ const PropertyDetails = () => {
         } catch (err) {
             console.error("Error toggling wishlist:", err);
             if (err.response?.status === 400) {
-                alert("Property already in wishlist");
+                showToast("Property already in wishlist", "error");
             } else {
-                alert("Error updating wishlist");
+                showToast("Error updating wishlist", "error");
             }
         } finally {
             setWishlistLoading(false);
@@ -514,6 +543,31 @@ const PropertyDetails = () => {
     return (
         <div>
             <Navbar />
+            
+            {/* Toast Notification positioned fixed */}
+            {toastMessage.text && (
+                <div style={{
+                    position: "fixed",
+                    top: "80px",
+                    right: "20px",
+                    zIndex: 9999,
+                    background: toastMessage.type === "error" ? "#ff4d4f" : toastMessage.type === "success" ? "#52c41a" : "#1890ff",
+                    color: "white",
+                    padding: "16px 24px",
+                    borderRadius: "8px",
+                    boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+                    fontWeight: "600",
+                    fontSize: "15px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    animation: "fadeIn 0.3s ease",
+                }}>
+                    <span>{toastMessage.type === "error" ? "⚠️" : toastMessage.type === "success" ? "✅" : "ℹ️"}</span>
+                    {toastMessage.text}
+                </div>
+            )}
+
             <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "0", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", background: "#fff" }}>
 
                 {/* Header Section */}
@@ -539,10 +593,11 @@ const PropertyDetails = () => {
                                             });
                                         } else {
                                             await navigator.clipboard.writeText(window.location.href);
-                                            alert("Link copied to clipboard!");
+                                            showToast("Link copied to clipboard!", "success");
                                         }
                                     } catch (err) {
                                         console.error("Error sharing:", err);
+                                        showToast("Error copying link.", "error");
                                     }
                                 }}
                                 style={{
@@ -596,7 +651,7 @@ const PropertyDetails = () => {
                                         onClick={() => {
                                             const token = localStorage.getItem("token");
                                             if (!token) {
-                                                alert("Please login to chat with the seller");
+                                                showToast("Please login to chat with the seller", "error");
                                                 navigate("/login");
                                                 return;
                                             }
@@ -634,13 +689,22 @@ const PropertyDetails = () => {
                                 <p>Select a date and time to visit this property.</p>
 
                                 <label style={{ display: 'block', marginTop: '15px', fontWeight: '600' }}>Date & Time *</label>
-                                <input
-                                    type="datetime-local"
-                                    value={visitDate}
-                                    onChange={(e) => setVisitDate(e.target.value)}
-                                    style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "4px", border: "1px solid #ccc" }}
-                                    required
-                                />
+                                <div style={{ display: "flex", gap: "10px" }}>
+                                    <input
+                                        type="date"
+                                        value={visitDateOnly}
+                                        onChange={(e) => setVisitDateOnly(e.target.value)}
+                                        style={{ flex: 1, padding: "10px", marginTop: "5px", borderRadius: "4px", border: "1px solid #ccc" }}
+                                        required
+                                    />
+                                    <input
+                                        type="time"
+                                        value={visitTimeOnly}
+                                        onChange={(e) => setVisitTimeOnly(e.target.value)}
+                                        style={{ flex: 1, padding: "10px", marginTop: "5px", borderRadius: "4px", border: "1px solid #ccc" }}
+                                        required
+                                    />
+                                </div>
 
                                 <label style={{ display: 'block', marginTop: '15px', fontWeight: '600' }}>Contact Number *</label>
                                 <input
@@ -1219,7 +1283,7 @@ const PropertyDetails = () => {
 
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
-                                        alert(`Thanks for reaching out! A representative from ${selectedDealer.name} will contact you shortly.`);
+                                        showToast(`Thanks for reaching out! A representative from ${selectedDealer.name} will contact you shortly.`, "success");
                                         setShowDealerModal(false);
                                     }}>
                                         <div style={{ marginBottom: "15px" }}>

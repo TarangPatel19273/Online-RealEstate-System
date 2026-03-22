@@ -58,6 +58,12 @@ public class SecurityConfig {
                         // ✅ STOCK PRICE FETCHING
                         .requestMatchers("/api/stocks/**").permitAll()
 
+                        // ✅ VISITS API
+                        .requestMatchers("/api/visits/**").permitAll()
+
+                        // ✅ ADMIN API
+                        .requestMatchers("/api/admin/**").permitAll()
+
                         // ✅ SPRING ERROR DISPATCHER
                         .requestMatchers("/error").permitAll()
 

@@ -25,11 +25,12 @@ import AdminVisits from "./components/admin/AdminVisits";
 import AdminLoans from "./components/admin/AdminLoans";
 import Compare from "./components/Compare";
 import MyVisits from "./components/MyVisits";
+import ChatPage from "./pages/ChatPage";
 
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -118,6 +119,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyVisits />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/:receiverId/:propertyId/:receiverUsername"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
               </ProtectedRoute>
             }
           />
