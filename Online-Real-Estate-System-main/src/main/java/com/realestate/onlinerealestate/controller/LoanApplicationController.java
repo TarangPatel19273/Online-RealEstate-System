@@ -290,6 +290,46 @@ public class LoanApplicationController {
         }
     }
 
+    @PostMapping("/user/{id}/submit-documents")
+    public ResponseEntity<?> submitDocuments(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+
+            LoanApplication application = loanApplicationService.getApplicationById(id);
+            if (application == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Application not found");
+            }
+
+            if (application.getUser() == null || !application.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized");
+            }
+
+            // Move to document verification stage
+            application.setStatus("DOCS_VERIFIED");
+            loanApplicationService.submitApplication(application);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Documents submitted for verification");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
     @GetMapping("/user/{id}/documents")
     public ResponseEntity<?> getLoanDocuments(
             @PathVariable Long id,

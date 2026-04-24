@@ -8,10 +8,8 @@ const AdminDocumentsModal = ({ loan, onClose }) => {
 
     useEffect(() => {
         if (loan && loan.id) fetchDocs();
-    }, [loan]); // Added loan to avoid linting on fetchDocs inside dependency array or just define fetchDocs outside/inside properly. We'll disable line for simplicity if needed, but defining it inside is best practice. Let's just fix the deps warning.
-
-    // Better to move fetchDocs inside useEffect if it's only used there, but since handleUpload uses it, we wrap it in useCallback or just disable the line.
-    // For this quick fix, I will just add the dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loan]);
 
     const fetchDocs = async () => {
         try {
@@ -166,14 +164,14 @@ const AdminLoans = () => {
                                 <td>
                                     <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                                         <select
-                                            value={l.status}
+                                            value={l.status === 'DOCUMENT_VERIFICATION' ? 'DOCS_VERIFIED' : l.status}
                                             onChange={(e) => handleStatusClick(l.id, e.target.value)}
                                             style={{ padding: "6px", borderRadius: "4px", border: "1px solid #ccc", minWidth: "150px" }}
                                         >
                                             <option value="PENDING">PENDING</option>
                                             <option value="APPROVED">APPROVED</option>
                                             <option value="PROCESSING">PROCESSING (Bank Details)</option>
-                                            <option value="DOCUMENT_VERIFICATION">DOCUMENT_VERIFICATION</option>
+                                            <option value="DOCS_VERIFIED">DOCS_VERIFIED</option>
                                             <option value="DISBURSED">DISBURSED</option>
                                             <option value="COMPLETED">COMPLETED</option>
                                             <option value="REJECTED">REJECTED</option>

@@ -54,10 +54,8 @@ class ChatService {
 
     // Create SockJS socket with userId and token as query parameters
     // (SockJS doesn't support custom headers, so we pass them as query params)
-    const socket = new SockJS(`${API_BASE}/ws-chat?userId=${userId}&token=${token}`);
-
     this.client = new Client({
-      webSocketFactory: () => socket,
+      webSocketFactory: () => new SockJS(`${API_BASE}/ws-chat?userId=${userId}&token=${token}`),
       // Send auth credentials in headers
       connectHeaders: {
         'Authorization': `Bearer ${token}`,
@@ -141,7 +139,7 @@ class ChatService {
    * 8. Client receives message in subscription callback
    */
   sendMessage(senderId, receiverId, propertyId, message) {
-    if (!this.isConnected || !this.client) {
+    if (!this.client || !this.client.connected) {
       return false;
     }
 

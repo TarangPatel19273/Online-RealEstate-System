@@ -47,7 +47,7 @@ public class LoanApplication {
 
     private Integer tenureYears;
 
-    @Column(length = 20)
+    @Column(length = 50)
     private String status = "PENDING"; // PENDING, APPROVED, REJECTED
 
     @Column(columnDefinition = "TEXT")

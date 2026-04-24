@@ -9,12 +9,13 @@ const LoanTimeline = ({ status }) => {
         { key: 'PENDING', label: 'Application Submitted' },
         { key: 'APPROVED', label: 'Admin Approved' },
         { key: 'PROCESSING', label: 'Bank Details Submitted' },
-        { key: 'DOCUMENT_VERIFICATION', label: 'Documents Verified' },
+        { key: 'DOCS_VERIFIED', label: 'Documents Verified' },
         { key: 'DISBURSED', label: 'Loan Disbursed' },
         { key: 'COMPLETED', label: 'Completed' }
     ];
 
-    const currentIndex = stages.findIndex(s => s.key === status);
+    const normalizedStatus = status === 'DOCUMENT_VERIFICATION' ? 'DOCS_VERIFIED' : status;
+    const currentIndex = stages.findIndex(s => s.key === normalizedStatus);
     // If status is REJECTED, handle differently
     if (status === 'REJECTED') {
         return (
@@ -162,9 +163,9 @@ const LoanEMISchedule = ({ loanId, status }) => {
     );
 };
 
-const LoanDocumentsSection = ({ loanId }) => {
+const LoanDocumentsSection = ({ loanId, status }) => {
     const [docs, setDocs] = useState([]);
-    const [docType, setDocType] = useState("Aadhaar Card");
+    const [docType, setDocType] = useState("");
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
 
@@ -172,6 +173,16 @@ const LoanDocumentsSection = ({ loanId }) => {
         fetchDocs();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loanId]);
+
+    const allDocTypes = ["Aadhaar Card", "PAN Card", "Salary Slip", "Bank Statement", "Property Agreement"];
+    const uploadedDocTypes = docs.map(d => d.documentType);
+    const availableDocTypes = allDocTypes.filter(type => !uploadedDocTypes.includes(type));
+
+    useEffect(() => {
+        if (availableDocTypes.length > 0 && !availableDocTypes.includes(docType)) {
+            setDocType(availableDocTypes[0]);
+        }
+    }, [docs, docType, availableDocTypes]);
 
     const fetchDocs = async () => {
         try {
@@ -235,19 +246,45 @@ const LoanDocumentsSection = ({ loanId }) => {
                 <p style={{ fontSize: "14px", color: "#666" }}>No documents uploaded yet.</p>
             )}
 
-            <div className="upload-form" style={{ display: "flex", gap: "10px", marginTop: "15px", alignItems: "center" }}>
-                <select value={docType} onChange={e => setDocType(e.target.value)} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}>
-                    <option value="Aadhaar Card">Aadhaar Card</option>
-                    <option value="PAN Card">PAN Card</option>
-                    <option value="Salary Slip">Salary Slip</option>
-                    <option value="Bank Statement">Bank Statement</option>
-                    <option value="Property Agreement">Property Agreement</option>
-                </select>
-                <input type="file" onChange={e => setFile(e.target.files[0])} style={{ padding: "5px" }} />
-                <button onClick={handleUpload} disabled={uploading || !file} style={{ padding: "8px 12px", background: "#0078db", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>
-                    {uploading ? "Uploading..." : "Upload"}
-                </button>
-            </div>
+            {status === 'PROCESSING' && (
+                availableDocTypes.length > 0 ? (
+                    <div className="upload-form" style={{ display: "flex", gap: "10px", marginTop: "15px", alignItems: "center" }}>
+                        <select value={docType} onChange={e => setDocType(e.target.value)} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}>
+                            {availableDocTypes.map(type => (
+                                <option key={type} value={type}>{type}</option>
+                            ))}
+                        </select>
+                        <input type="file" onChange={e => setFile(e.target.files[0])} style={{ padding: "5px" }} />
+                        <button onClick={handleUpload} disabled={uploading || !file} style={{ padding: "8px 12px", background: "#0078db", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>
+                            {uploading ? "Uploading..." : "Upload"}
+                        </button>
+                    </div>
+                ) : (
+                    <div style={{ marginTop: "15px", display: "flex", gap: "10px", alignItems: "center" }}>
+                        <p style={{ color: "#4caf50", fontWeight: "bold", margin: 0 }}>All required documents uploaded.</p>
+                        <button onClick={async () => {
+                            try {
+                                const token = localStorage.getItem("token");
+                                const res = await fetch(`${API_BASE}/api/loans/user/${loanId}/submit-documents`, {
+                                    method: "POST",
+                                    headers: { "Authorization": `Bearer ${token}` }
+                                });
+                                if (res.ok) {
+                                    alert("Documents submitted for verification!");
+                                    window.location.reload();
+                                } else {
+                                    alert("Failed to submit documents.");
+                                }
+                            } catch (error) {
+                                console.error(error);
+                                alert("Error submitting documents");
+                            }
+                        }} style={{ padding: "8px 16px", background: "#4caf50", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+                            Confirm Submit
+                        </button>
+                    </div>
+                )
+            )}
         </div>
     );
 };
@@ -455,7 +492,7 @@ const MyLoans = () => {
                                     </div>
                                 ) : null}
 
-                                <LoanDocumentsSection loanId={loan.id} />
+                                <LoanDocumentsSection loanId={loan.id} status={loan.status} />
 
                                 {/* Render EMI Schedule only if Disbursed or Completed */}
                                 {(loan.status === 'DISBURSED' || loan.status === 'COMPLETED') && (

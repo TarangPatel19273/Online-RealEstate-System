@@ -3,6 +3,7 @@ package com.realestate.onlinerealestate.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "emi_payments")
@@ -14,6 +15,7 @@ public class EmiPayment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "loan_id", nullable = false)
+    @JsonIgnore
     private LoanApplication loanApplication;
 
     private Integer monthNumber;

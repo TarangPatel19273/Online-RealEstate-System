@@ -11,7 +11,6 @@ function Signup() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -130,7 +129,7 @@ function Signup() {
       setMessage("");
       const res = await signup({ username, email, password });
       setMessage(res.data);
-      navigate("/verify-otp", { state: { email, isAdmin } });
+      navigate("/verify-otp", { state: { email, isAdmin: false } });
     } catch (err) {
       console.error(err);
       if (typeof err.response?.data === "string") {
@@ -292,10 +291,6 @@ function Signup() {
               <label className="checkbox">
                 <input type="checkbox" required />
                 <span>I agree to the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong></span>
-              </label>
-              <label className="checkbox">
-                <input type="checkbox" checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} />
-                <span>Register as Admin (For Testing)</span>
               </label>
             </div>
 
