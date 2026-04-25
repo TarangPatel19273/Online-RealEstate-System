@@ -11,6 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Controller strictly restricted to Admin users.
+ * Provides endpoints for platform-wide analytics, user management (blocking/roles),
+ * and property moderation (approving/rejecting/featuring properties).
+ */
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = "*")
@@ -28,7 +33,10 @@ public class AdminController {
     @Autowired
     private LoanApplicationRepository loanApplicationRepository;
 
-    // --- Analytics ---
+    /**
+     * Aggregates platform-wide statistics for the admin dashboard.
+     * @return Map containing total counts for users, properties, loans, visits, etc.
+     */
     @GetMapping("/analytics")
     public ResponseEntity<Map<String, Object>> getAnalytics() {
         Map<String, Object> stats = new HashMap<>();
@@ -47,6 +55,11 @@ public class AdminController {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
+    // --- User Management ---
+    
+    /**
+     * Toggles the block status of a user. Blocked users cannot log in.
+     */
     @PutMapping("/users/{id}/block")
     public ResponseEntity<User> toggleBlockUser(@PathVariable Long id, @RequestParam boolean block) {
         User user = userRepository.findById(id).orElseThrow();

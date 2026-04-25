@@ -35,6 +35,11 @@ import com.realestate.onlinerealestate.repository.PropertyRepository;
 import com.realestate.onlinerealestate.repository.UserRepository;
 import com.realestate.onlinerealestate.security.JwtUtil;
 
+/**
+ * Controller responsible for managing real estate properties.
+ * Handles uploading new properties with images/videos, searching properties by filters,
+ * and serving the static media files associated with the properties.
+ */
 @RestController
 @RequestMapping("/api/properties")
 @CrossOrigin(origins = "*")
@@ -55,6 +60,12 @@ public class PropertyController {
     // ==========================
     // UPLOAD PROPERTY
     // ==========================
+    /**
+     * Uploads a new property listing.
+     * Expects multipart form data including property details and an array of image/video files.
+     * The files are saved locally to the 'uploads' directory and their paths are stored in the database.
+     * Requires a valid JWT token to link the property to the uploading User.
+     */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadProperty(
             @RequestParam String title,
@@ -221,6 +232,8 @@ public class PropertyController {
             dto.setAmenities(property.getAmenities());
             dto.setLatitude(property.getLatitude());
             dto.setLongitude(property.getLongitude());
+            dto.setFeatured(property.isFeatured());
+            dto.setVerified(property.isVerified());
 
             // Return whatever image names are stored; let client handle missing ones
             // gracefully
@@ -276,6 +289,8 @@ public class PropertyController {
             dto.setAmenities(property.getAmenities());
             dto.setLatitude(property.getLatitude());
             dto.setLongitude(property.getLongitude());
+            dto.setFeatured(property.isFeatured());
+            dto.setVerified(property.isVerified());
             dto.setImageUrls(property.getImageNames() != null ? property.getImageNames() : new ArrayList<>());
             dto.setVideoUrls(property.getVideoNames() != null ? property.getVideoNames() : new ArrayList<>());
 
@@ -296,6 +311,11 @@ public class PropertyController {
     // ==========================
     // SEARCH PROPERTIES BY LOCATION
     // ==========================
+    /**
+     * Searches properties based on location, type, and category filters.
+     * Supports progressive fallback searches (e.g., matching partial city names or states).
+     * @return List of matching properties formatted as Data Transfer Objects (DTOs).
+     */
     @GetMapping("/search")
     public ResponseEntity<?> searchProperties(
             @RequestParam(required = false) String location,
@@ -350,6 +370,8 @@ public class PropertyController {
             dto.setTotalFloors(property.getTotalFloors());
             dto.setPropertyAge(property.getPropertyAge());
             dto.setAmenities(property.getAmenities());
+            dto.setFeatured(property.isFeatured());
+            dto.setVerified(property.isVerified());
 
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());
@@ -405,6 +427,8 @@ public class PropertyController {
             dto.setTotalFloors(property.getTotalFloors());
             dto.setPropertyAge(property.getPropertyAge());
             dto.setAmenities(property.getAmenities());
+            dto.setFeatured(property.isFeatured());
+            dto.setVerified(property.isVerified());
 
             List<String> imageNames = property.getImageNames();
             dto.setImageUrls(imageNames != null ? imageNames : new ArrayList<>());

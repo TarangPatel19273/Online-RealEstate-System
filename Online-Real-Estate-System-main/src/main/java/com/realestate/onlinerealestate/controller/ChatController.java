@@ -11,6 +11,11 @@ import java.security.Principal;
 import com.realestate.onlinerealestate.dto.ChatMessageDTO;
 import com.realestate.onlinerealestate.service.ChatMessageService;
 
+/**
+ * Controller responsible for handling real-time WebSocket messages via STOMP.
+ * Receives messages from the frontend, validates security/authorization, saves them
+ * to the database, and broadcasts them to the respective sender and receiver queues.
+ */
 @Controller
 public class ChatController {
 
@@ -23,6 +28,16 @@ public class ChatController {
     @Autowired(required = false)
     private SimpUserRegistry userRegistry;
 
+    /**
+     * Handles incoming STOMP messages directed to /app/chat/{receiverId}/{propertyId}.
+     * Verifies the identity of the sender using the Principal attached to the WebSocket session,
+     * saves the message via ChatMessageService, and then routes it to the specific user queues.
+     * 
+     * @param receiverId The ID of the user who should receive the message.
+     * @param propertyId The ID of the property context for this chat.
+     * @param message The payload containing the message text and sender ID.
+     * @param principal The security principal representing the authenticated WebSocket session.
+     */
     @MessageMapping("/chat/{receiverId}/{propertyId}")
     public void sendMessage(@DestinationVariable Long receiverId, 
                             @DestinationVariable Long propertyId,

@@ -3,6 +3,14 @@ import { signup, googleLogin } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
 
+/**
+ * Signup Component
+ * 
+ * Handles new user registration using either a traditional email/password form
+ * or via Google OAuth 2.0 (Google Sign-In). 
+ * Includes UI logic for password strength validation and transitions the user
+ * to the OTP verification step upon successful standard registration.
+ */
 function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");

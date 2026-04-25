@@ -3,6 +3,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import * as authService from "../services/authService";
 import "./Auth.css";
 
+/**
+ * Login Component
+ * 
+ * Handles user authentication via standard email/username credentials
+ * or through Google OAuth 2.0. Upon successful login, it stores the
+ * JWT token in localStorage and redirects the user to the appropriate
+ * dashboard based on their role (Admin vs Standard User).
+ */
 function Login() {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");

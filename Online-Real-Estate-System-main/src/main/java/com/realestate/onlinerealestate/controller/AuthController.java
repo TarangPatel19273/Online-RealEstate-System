@@ -22,6 +22,11 @@ import com.realestate.onlinerealestate.security.JwtUtil;
 import com.realestate.onlinerealestate.service.EmailService;
 import com.realestate.onlinerealestate.service.OtpService;
 
+/**
+ * Controller responsible for handling all authentication-related requests.
+ * This includes user signup, login (JWT-based), OTP verification, password resets,
+ * and Google OAuth 2.0 integration.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
@@ -47,6 +52,13 @@ public class AuthController {
     // =========================
     // SIGNUP → SEND OTP
     // =========================
+    /**
+     * Handles the first step of user registration.
+     * Validates if the email is already in use, encodes the password, generates an OTP,
+     * and sends it to the user's email.
+     * @param request Contains email, username, and raw password.
+     * @return Success message indicating OTP was sent.
+     */
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
 
@@ -81,6 +93,12 @@ public class AuthController {
     // =========================
     // VERIFY OTP → CREATE USER
     // =========================
+    /**
+     * Verifies the OTP sent during signup. If valid, it persists the user in the database,
+     * marks them as verified, and immediately logs them in by returning a JWT token.
+     * @param request Contains the email and the OTP code provided by the user.
+     * @return AuthResponse containing the JWT token and user details.
+     */
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpRequest request) {
 
@@ -125,6 +143,12 @@ public class AuthController {
     // =========================
     // LOGIN (EMAIL/USERNAME + PASSWORD)
     // =========================
+    /**
+     * Authenticates a user using either their email or username along with their password.
+     * If credentials are valid, it generates and returns a JWT token for subsequent API requests.
+     * @param request Contains username/email and password.
+     * @return AuthResponse containing the JWT token and user details.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
@@ -221,6 +245,13 @@ public class AuthController {
     // =========================
     // GOOGLE LOGIN
     // =========================
+    /**
+     * Handles Google OAuth 2.0 login.
+     * It receives an ID token from the frontend, verifies its authenticity against Google's tokeninfo endpoint,
+     * extracts user details, and either logs the user in or automatically creates a new account for them.
+     * @param request Contains the Google ID token.
+     * @return AuthResponse containing our system's internal JWT token and user details.
+     */
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
         try {

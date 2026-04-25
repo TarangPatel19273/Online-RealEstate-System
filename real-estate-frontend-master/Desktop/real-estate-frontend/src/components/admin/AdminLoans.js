@@ -3,6 +3,16 @@ import axios from "axios";
 import { API_BASE } from "../../config";
 import "./AdminTables.css";
 
+/**
+ * AdminLoans Component
+ * 
+ * This component renders the Admin Dashboard for managing all loan applications across the platform.
+ * It provides administrative tools to:
+ * 1. View all user loan applications and their current status.
+ * 2. Review uploaded KYC and property documents via a modal (`AdminDocumentsModal`).
+ * 3. Update the overarching loan status (e.g., APPROVED, REJECTED, DISBURSED) and add admin remarks.
+ */
+
 const AdminDocumentsModal = ({ loan, onClose }) => {
     const [docs, setDocs] = useState([]);
 

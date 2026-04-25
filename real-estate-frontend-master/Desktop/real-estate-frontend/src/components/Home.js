@@ -85,10 +85,16 @@ const Home = () => {
     propertyService.searchProperties(filters)
       .then(res => {
         const data = res.data || [];
-        setProperties(data);
+        // Sort properties: Featured properties first
+        const sortedData = data.sort((a, b) => {
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          return 0;
+        });
+        setProperties(sortedData);
 
         const initialIndexes = {};
-        data.forEach(property => {
+        sortedData.forEach(property => {
           initialIndexes[property.id] = 0;
         });
         setCurrentImageIndex(initialIndexes);
@@ -285,7 +291,11 @@ const Home = () => {
                       {/* DETAILS */}
                       <div className="card-details">
                         <div className="card-header">
-                          <h3 className="card-price">₹ {property.price}</h3>
+                          <h3 className="card-price" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                            ₹ {property.price}
+                            {property.featured && <span style={{ marginLeft: '10px', fontSize: '12px', background: '#f59e0b', color: 'white', padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>★ Featured</span>}
+                            {property.verified && <span style={{ marginLeft: '6px', fontSize: '12px', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>✓ Verified</span>}
+                          </h3>
                           <span className="card-title">{property.title}</span>
                         </div>
 

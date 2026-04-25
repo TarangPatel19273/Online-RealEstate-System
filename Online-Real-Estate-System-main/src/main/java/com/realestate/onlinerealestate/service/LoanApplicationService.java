@@ -6,12 +6,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
+/**
+ * Service class for handling core CRUD operations and business logic related to Loan Applications.
+ * Separates data access logic from the LoanApplicationController.
+ */
 @Service
 public class LoanApplicationService {
 
     @Autowired
     private LoanApplicationRepository loanApplicationRepository;
 
+    /**
+     * Saves a new or updated loan application to the database.
+     * @param application The LoanApplication entity to save.
+     * @return The saved LoanApplication entity.
+     */
     public LoanApplication submitApplication(LoanApplication application) {
         return loanApplicationRepository.save(application);
     }

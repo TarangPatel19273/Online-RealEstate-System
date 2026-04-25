@@ -4,6 +4,18 @@ import Navbar from "../components/Navbar";
 import { API_BASE } from "../config";
 import "./MyLoans.css";
 
+/**
+ * MyLoans Component
+ * 
+ * This is a primary user dashboard page that displays all loan applications 
+ * submitted by the current authenticated user. It handles the complex UI state
+ * for the multi-step loan approval process, including:
+ * 1. Viewing the Loan Timeline (PENDING -> APPROVED -> PROCESSING -> DOCS_VERIFIED -> DISBURSED)
+ * 2. Uploading required KYC and property documents.
+ * 3. Viewing the generated EMI schedule and simulating EMI payments.
+ * 4. Downloading the dynamically generated Loan Agreement PDF.
+ */
+
 const LoanTimeline = ({ status }) => {
     const stages = [
         { key: 'PENDING', label: 'Application Submitted' },

@@ -2,6 +2,11 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { API_BASE } from '../config';
 
+/**
+ * Singleton service responsible for managing the STOMP/SockJS WebSocket connection.
+ * Handles connecting, disconnecting, subscribing to specific message queues,
+ * and broadcasting messages to connected React components via listeners.
+ */
 class ChatService {
   constructor() {
     this.client = null;

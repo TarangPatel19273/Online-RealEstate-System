@@ -36,6 +36,24 @@ public class PropertyResponse {
 	private Long userId;
 	private Double latitude;
 	private Double longitude;
+	private boolean featured;
+	private boolean verified;
+
+	public boolean isFeatured() {
+		return featured;
+	}
+
+	public void setFeatured(boolean featured) {
+		this.featured = featured;
+	}
+
+	public boolean isVerified() {
+		return verified;
+	}
+
+	public void setVerified(boolean verified) {
+		this.verified = verified;
+	}
 
 	public Double getLatitude() {
 		return latitude;

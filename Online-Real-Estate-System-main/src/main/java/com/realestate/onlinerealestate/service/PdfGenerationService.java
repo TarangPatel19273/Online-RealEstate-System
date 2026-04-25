@@ -7,9 +7,19 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+/**
+ * Service responsible for generating dynamic PDF documents, specifically Loan Agreements.
+ * Uses the iText html2pdf library to convert dynamic HTML strings into downloadable PDF byte arrays.
+ */
 @Service
 public class PdfGenerationService {
 
+    /**
+     * Generates a Loan Agreement PDF for a given LoanApplication.
+     * @param loan The LoanApplication containing borrower and loan details.
+     * @return A byte array representing the generated PDF file.
+     * @throws IOException If the HTML to PDF conversion fails.
+     */
     public byte[] generateLoanAgreementPdf(LoanApplication loan) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 

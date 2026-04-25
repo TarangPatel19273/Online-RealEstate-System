@@ -32,6 +32,11 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.HashMap;
 
+/**
+ * Controller responsible for managing the complete lifecycle of a Loan Application.
+ * This includes submitting the initial application, uploading KYC documents, 
+ * selecting a bank, and downloading the dynamically generated Loan Agreement PDF.
+ */
 @RestController
 @RequestMapping("/api/loans")
 @CrossOrigin(origins = "*")
@@ -61,12 +66,21 @@ public class LoanApplicationController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * Retrieves the global loan settings (like interest rate) which are configured by the admin.
+     * @return LoanSettings entity containing interest rate configurations.
+     */
     @GetMapping("/settings")
     public ResponseEntity<com.realestate.onlinerealestate.model.LoanSettings> getPublicSettings() {
         return ResponseEntity.ok(loanSettingsRepository.findAll().stream().findFirst()
                 .orElse(new com.realestate.onlinerealestate.model.LoanSettings()));
     }
 
+    /**
+     * Submits a new loan application. This is the first step in the loan lifecycle (Status: PENDING).
+     * Extracts the user's JWT token (if logged in) to link the application to their account.
+     * Optionally accepts an initial document upload.
+     */
     @PostMapping(value = "/apply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> submitLoanApplication(
             @RequestParam("fullName") String fullName,
